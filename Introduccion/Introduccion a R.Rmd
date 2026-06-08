@@ -1,5 +1,5 @@
 ---
-title: "Clase 01: Introducción a R"
+title: "Clase 0: Introducción a R"
 subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
 author: "Brayan David Flórez | Profesor complementario"
 date: "2026-19"
@@ -29,13 +29,13 @@ knitr::opts_chunk$set(
 )
 ```
 
----
+------------------------------------------------------------------------
 
-> **Universidad de los Andes** | Departamento de Economía  
-> Clase complementaria — Viernes de 7 a 10 AM  
-> Profesor magistral: Edicson Luna &nbsp;·&nbsp; Asistente: Brayan David Flórez
+> **Universidad de los Andes** \| Departamento de Economía\
+> Clase complementaria — Viernes de 7 a 10 AM\
+> Profesor magistral: Edicson Luna  ·  Asistente: Brayan David Flórez
 
----
+------------------------------------------------------------------------
 
 # Introducción al curso
 
@@ -43,8 +43,8 @@ knitr::opts_chunk$set(
 
 El método del economista tiene dos pilares fundamentales:
 
-1. **Modelos teóricos formales** para describir relaciones entre variables económicas.
-2. **Analítica de datos** para cuantificar dichas relaciones con base en información del mundo real.
+1.  **Modelos teóricos formales** para describir relaciones entre variables económicas.
+2.  **Analítica de datos** para cuantificar dichas relaciones con base en información del mundo real.
 
 Estas cuantificaciones se dividen en dos grandes grupos:
 
@@ -55,22 +55,22 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 
 ## Información del equipo pedagógico
 
-| Rol                         | Nombre               | Correo                         |
-|-----------------------------|----------------------|--------------------------------|
-| Profesor magistral          | Edicson Luna         | edicson@sas.upenn.edu          |
-| Asistente / Clase compl.    | Brayan David Flórez  | b.florezl@uniandes.edu.co      |
+| Rol | Nombre | Correo |
+|-------------------------|--------------------|----------------------------|
+| Profesor magistral | Edicson Luna | [edicson\@sas.upenn.edu](mailto:edicson@sas.upenn.edu){.email} |
+| Profesor complementario. | Brayan David Flórez | [b.florezl\@uniandes.edu.co](mailto:b.florezl@uniandes.edu.co){.email} |
 
-- **Clase magistral:** Lunes, martes y jueves 8–10 AM; miércoles 7–10 AM  
+- **Clase magistral:** Lunes, martes y jueves 8–10 AM; miércoles 7–10 AM\
 - **Clase complementaria:** Viernes 7–10 AM *(esta clase)*
 
----
+------------------------------------------------------------------------
 
 # Objetivos del curso
 
 Al finalizar exitosamente **Econometría 1**, el estudiante:
 
-| Código   | Resultado de aprendizaje |
-|----------|--------------------------|
+| Código | Resultado de aprendizaje |
+|---------------------|---------------------------------------------------|
 | **R.A.1** | Sabe cuantificar relaciones entre variables económicas. |
 | **R.A.2** | Conoce los aspectos básicos del análisis econométrico. |
 | **R.A.3** | Conoce las principales limitaciones del análisis econométrico. |
@@ -79,49 +79,49 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 
 **El objetivo de las clases complementarias** es que domines las herramientas computacionales (R) necesarias para alcanzar estos resultados de aprendizaje.
 
----
+------------------------------------------------------------------------
 
 # Organización del curso
 
 ## Cronograma general
 
-| Semana | Temas (clase magistral)                                 | Evaluación              |
-|--------|---------------------------------------------------------|-------------------------|
-| 1      | Repaso de estadística                                   | —                       |
-| 2      | Repaso de estadística, estimador OLS                    | —                       |
-| 3      | Insesgamiento, inferencia estadística                   | Quiz 1 (mié. 24 jun.)   |
-| 4      | Distintos tipos de variables, teoría asintótica         | Quiz 2 (mié. 1 jul.)    |
-| 5      | Principios de inferencia causal                         | Quiz 3 (mié. 15 jul.)   |
-| 6      | Variable dicotómica dependiente, presentaciones         | Examen Final (jue. 23 jul.) |
+| Semana | Fechas | Temas | Evaluación |
+|----|----|----|----|
+| **1** | 16 – 20 jun | Repaso de estadística | — |
+| **2** | 23 – 27 jun | Repaso de estadística · Estimador OLS | **Quiz 1** · mié 25 jun |
+| **3** | 30 jun – 4 jul | Insesgamiento · Inferencia estadística | **Quiz 2** · mié 2 jul |
+| **4** | 7 – 11 jul | Tipos de variables · Teoría asintótica | — |
+| **5** | 14 – 18 jul | Principios de inferencia causal | **Quiz 3** · mié 16 jul |
+| **6** | 21 – 24 jul | Variable dicotómica dependiente · Presentaciones | **Examen Final** · jue 23 jul |
 
-> **Presentaciones:** viernes 24 de julio (clase complementaria)
+> **Presentaciones:** Última semana de clases
 
 ## Sistema de evaluación
 
 **Estudiantes con 3 créditos:**
 
-| Evaluación       | Porcentaje |
-|------------------|-----------|
-| Quiz 1           | 10%       |
-| Quiz 2           | 10%       |
-| Quiz 3           | 10%       |
-| Examen Final     | 20%       |
-| Trabajo 1        | 20%       |
-| Trabajo 2        | 20%       |
-| Presentaciones   | 10%       |
+| Evaluación     | Porcentaje |
+|----------------|------------|
+| Quiz 1         | 10%        |
+| Quiz 2         | 10%        |
+| Quiz 3         | 10%        |
+| Examen Final   | 20%        |
+| Trabajo 1      | 20%        |
+| Trabajo 2      | 20%        |
+| Presentaciones | 10%        |
 
 **Estudiantes con 4 créditos (con taller):**
 
-| Evaluación       | Porcentaje |
-|------------------|-----------|
-| Quiz 1           | 10%       |
-| Quiz 2           | 10%       |
-| Quiz 3           | 10%       |
-| Examen Final     | 20%       |
-| Trabajo 1        | 15%       |
-| Trabajo 2        | 15%       |
-| Presentaciones   | 10%       |
-| Manejo de datos  | 10%       |
+| Evaluación      | Porcentaje |
+|-----------------|------------|
+| Quiz 1          | 10%        |
+| Quiz 2          | 10%        |
+| Quiz 3          | 10%        |
+| Examen Final    | 20%        |
+| Trabajo 1       | 15%        |
+| Trabajo 2       | 15%        |
+| Presentaciones  | 10%        |
+| Manejo de datos | 10%        |
 
 ## Referencias del curso
 
@@ -130,17 +130,17 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 - **(AP)** Angrist & Pischke (2014). *Mastering Metrics: The Path from Cause to Effect.*
 - **(MH)** Angrist & Pischke (2008). *Mostly Harmless Econometrics.*
 
----
+------------------------------------------------------------------------
 
 # Hoy veremos
 
-1. **Motivación** — ¿por qué aprender R?  
-2. **¿Por qué usar R?** — ventajas frente a otras herramientas  
-3. **Configuración inicial** — instalar R y RStudio  
-4. **Interfaz de RStudio** — paneles y flujo de trabajo  
-5. **Primeros pasos en R** — objetos, operaciones, vectores, data frames y funciones básicas  
+1.  **Motivación** — ¿por qué aprender R?\
+2.  **¿Por qué usar R?** — ventajas frente a otras herramientas\
+3.  **Configuración inicial** — instalar R y RStudio\
+4.  **Interfaz de RStudio** — paneles y flujo de trabajo\
+5.  **Primeros pasos en R** — objetos, operaciones, vectores, data frames y funciones básicas
 
----
+------------------------------------------------------------------------
 
 # Motivación: ¿por qué aprender R?
 
@@ -152,7 +152,7 @@ Una forma de medir la popularidad de un lenguaje es observar cuántas ofertas de
 knitr::include_graphics("uso_de_bases_de_datos.jpg")
 ```
 
-**Lectura del gráfico:** En las ofertas de trabajo para economistas en Colombia, **R es el segundo lenguaje más demandado** (≈12%), después de SQL y por encima de Python. Stata, que fue el estándar histórico en economía, aparece con apenas ~2%.
+**Lectura del gráfico:** En las ofertas de trabajo para economistas en Colombia, **R es el segundo lenguaje más demandado** (≈12%), después de SQL y por encima de Python. Stata, que fue el estándar histórico en economía, aparece con apenas \~2%.
 
 ## R en el mercado laboral global
 
@@ -164,59 +164,34 @@ knitr::include_graphics("Numero_de_ofertas.png")
 
 ## Conclusión: ¿por qué R y no Stata?
 
-| Criterio                  | R              | Stata          | Python         | Excel          |
-|---------------------------|---------------|---------------|---------------|---------------|
-| Costo                     | **Gratuito**  | De pago (~$500/año) | **Gratuito** | De pago      |
-| Reproducibilidad          | Alta          | Alta          | Alta          | Baja          |
-| Econometría               | Excelente     | Excelente     | Buena         | Limitada      |
-| Visualización             | Excelente     | Buena         | Excelente     | Básica        |
-| Machine learning          | Excelente     | Limitada      | Excelente     | Ninguna       |
-| Demanda laboral Colombia  | 2°            | 6°            | 3°            | —             |
-| Comunidad activa          | Muy grande    | Grande        | Muy grande    | Grande        |
+| Criterio                 | R            | Stata     | Python       | Excel    |
+|--------------------------|--------------|-----------|--------------|----------|
+| Costo                    | **Gratuito** | De pago   | **Gratuito** | De pago  |
+| Reproducibilidad         | Alta         | Alta      | Alta         | Baja     |
+| Econometría              | Excelente    | Excelente | Buena        | Limitada |
+| Visualización            | Excelente    | Buena     | Excelente    | Básica   |
+| Machine learning         | Excelente    | Limitada  | Excelente    | Ninguna  |
+| Demanda laboral Colombia | 2°           | 6°        | 3°           | —        |
+| Comunidad activa         | Muy grande   | Grande    | Muy grande   | Grande   |
 
 > **Conclusión:** R es gratuito, está entre los más demandados en Colombia y el mundo, y es el estándar en investigación económica reproducible. Aprender R es una inversión de alto retorno para tu carrera.
-
-## R Markdown y reproducibilidad
-
-Este mismo documento fue generado con **R Markdown**: combina texto y código R en un archivo `.Rmd`. Al compilarlo (*knit*), produce un reporte con todos los resultados actualizados automáticamente.
-
-**Ventajas de R Markdown:**
-
-- Integra análisis y escritura en un solo lugar.
-- Cualquier persona puede re-ejecutar el código y obtener los mismos resultados.
-- Produce reportes en HTML, PDF o Word.
-- Es el estándar en investigación reproducible y en muchos equipos de análisis en empresas y entidades públicas.
-
----
-
-# ¿Por qué usar R?
-
-## R vs. otros programas
-
-Además de lo que vimos en los gráficos, R tiene ventajas técnicas concretas:
-
-- **Más de 20.000 paquetes** en CRAN para tareas especializadas (econometría, machine learning, visualización, etc.).
-- **ggplot2**: el estándar de visualización de datos más usado en el mundo académico y empresarial.
-- **tidyverse**: ecosistema de paquetes para manipulación de datos de forma clara y eficiente.
-- **R Markdown / Quarto**: reportes reproducibles y dinámicos.
-- **Shiny**: aplicaciones web interactivas con datos, sin necesidad de saber HTML/CSS.
-
----
+>
+> # 
 
 # Configuración inicial
 
 ## Instalar R
 
-1. Ve a <https://cran.r-project.org/>
-2. Selecciona tu sistema operativo (Windows / macOS / Linux).
-3. Descarga la versión más reciente (R 4.x.x).
-4. Sigue el instalador con las opciones por defecto.
+1.  Ve a <https://cran.r-project.org/>
+2.  Selecciona tu sistema operativo (Windows / macOS / Linux).
+3.  Descarga la versión más reciente (R 4.x.x).
+4.  Sigue el instalador con las opciones por defecto.
 
 ## Instalar RStudio
 
-1. Ve a <https://posit.co/download/rstudio-desktop/>
-2. Descarga la versión gratuita de **RStudio Desktop**.
-3. Instala **después** de haber instalado R.
+1.  Ve a <https://posit.co/download/rstudio-desktop/>
+2.  Descarga la versión gratuita de **RStudio Desktop**.
+3.  Instala **después** de haber instalado R.
 
 > **Importante:** R es el motor; RStudio es la cabina de pilotaje. Necesitas ambos.
 
@@ -240,13 +215,13 @@ Una vez instalados, se cargan con `library()` al inicio de cada sesión:
 library(tidyverse)
 ```
 
----
+------------------------------------------------------------------------
 
 # Interfaz de RStudio
 
 ## Los cuatro paneles principales
 
-```
+```         
 ┌─────────────────────┬─────────────────────┐
 │  Editor de scripts  │  Environment /       │
 │  (Scripts .R / .Rmd)│  History / Files     │
@@ -256,22 +231,22 @@ library(tidyverse)
 └─────────────────────┴─────────────────────┘
 ```
 
-| Panel              | Función principal                                      |
-|--------------------|-------------------------------------------------------|
-| **Editor**         | Escribir y guardar scripts o documentos R Markdown    |
-| **Consola**        | Ejecutar comandos directamente; ver resultados        |
-| **Environment**    | Ver los objetos creados en la sesión actual           |
-| **Plots / Help**   | Ver gráficas, buscar documentación de funciones       |
+| Panel            | Función principal                                  |
+|------------------|----------------------------------------------------|
+| **Editor**       | Escribir y guardar scripts o documentos R Markdown |
+| **Consola**      | Ejecutar comandos directamente; ver resultados     |
+| **Environment**  | Ver los objetos creados en la sesión actual        |
+| **Plots / Help** | Ver gráficas, buscar documentación de funciones    |
 
 ## Atajos de teclado útiles
 
-| Acción                              | Windows/Linux       | macOS              |
-|-------------------------------------|--------------------|--------------------|
-| Ejecutar línea/selección            | `Ctrl + Enter`     | `Cmd + Enter`      |
-| Insertar chunk en R Markdown        | `Ctrl + Alt + I`   | `Cmd + Option + I` |
-| Compilar (Knit) el documento        | `Ctrl + Shift + K` | `Cmd + Shift + K`  |
-| Comentar/descomentar líneas         | `Ctrl + Shift + C` | `Cmd + Shift + C`  |
-| Autocompletar                       | `Tab`              | `Tab`              |
+| Acción                       | Windows/Linux      | macOS              |
+|------------------------------|--------------------|--------------------|
+| Ejecutar línea/selección     | `Ctrl + Enter`     | `Cmd + Enter`      |
+| Insertar chunk en R Markdown | `Ctrl + Alt + I`   | `Cmd + Option + I` |
+| Compilar (Knit) el documento | `Ctrl + Shift + K` | `Cmd + Shift + K`  |
+| Comentar/descomentar líneas  | `Ctrl + Shift + C` | `Cmd + Shift + C`  |
+| Autocompletar                | `Tab`              | `Tab`              |
 
 ## Configurar el directorio de trabajo
 
@@ -288,7 +263,7 @@ setwd("C:/Users/TuUsuario/Documentos/econometria1")
 
 > **Recomendación:** usa siempre un **Proyecto de RStudio** (`.Rproj`) por curso/trabajo. Esto resuelve automáticamente los problemas de rutas.
 
----
+------------------------------------------------------------------------
 
 # Primeros pasos en R
 
@@ -595,7 +570,7 @@ ggplot(datos_sim, aes(x = educacion, y = salario)) +
   theme_minimal()
 ```
 
----
+------------------------------------------------------------------------
 
 # Anticipo: el modelo OLS en R
 
@@ -619,18 +594,18 @@ confint(modelo, level = 0.95)
 
 > En las próximas clases complementarias aprenderás a interpretar estos resultados, trabajar con datos reales y construir modelos de regresión múltiple.
 
----
+------------------------------------------------------------------------
 
 # Consejos para el curso
 
-1. **Escribe código todos los días.** Como cualquier idioma, R se aprende practicando.
-2. **Comenta tu código.** Usa `#` para explicar qué hace cada bloque.
-3. **Usa proyectos de RStudio.** Mantén tu trabajo organizado por carpetas.
-4. **Busca en la documentación.** `?nombre_funcion` en la consola abre la ayuda.
-5. **Google y Stack Overflow son tus amigos.** La mayoría de errores ya los sufrió alguien más.
-6. **No copies y pegues sin entender.** Reproducibilidad ≠ copy-paste ciego.
+1.  **Escribe código todos los días.** Como cualquier idioma, R se aprende practicando.
+2.  **Comenta tu código.** Usa `#` para explicar qué hace cada bloque.
+3.  **Usa proyectos de RStudio.** Mantén tu trabajo organizado por carpetas.
+4.  **Busca en la documentación.** `?nombre_funcion` en la consola abre la ayuda.
+5.  **Google y Stack Overflow son tus amigos.** La mayoría de errores ya los sufrió alguien más.
+6.  **No copies y pegues sin entender.** Reproducibilidad ≠ copy-paste ciego.
 
----
+------------------------------------------------------------------------
 
 # Recursos adicionales
 
@@ -640,7 +615,7 @@ confint(modelo, level = 0.95)
 - **Documentación de tidyverse**: <https://www.tidyverse.org/>
 - **StackOverflow en español**: <https://es.stackoverflow.com/>
 
----
+------------------------------------------------------------------------
 
 # Ejercicios prácticos
 
@@ -680,6 +655,6 @@ confint(modelo, level = 0.95)
 #     ¿Hay alguna relación visual entre estas dos variables?
 ```
 
----
+------------------------------------------------------------------------
 
-*Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 | Universidad de los Andes | 2026-19*
+*Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 \| Universidad de los Andes \| 2026-19*
