@@ -56,7 +56,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 ## Información del equipo pedagógico
 
 | Rol | Nombre | Correo |
-|-------------------------|--------------------|----------------------------|
+|-------------------------|--------------------|---------------------------|
 | Profesor magistral | Edicson Luna | [edicson\@sas.upenn.edu](mailto:edicson@sas.upenn.edu){.email} |
 | Profesor complementario. | Brayan David Flórez | [b.florezl\@uniandes.edu.co](mailto:b.florezl@uniandes.edu.co){.email} |
 
@@ -70,7 +70,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 Al finalizar exitosamente **Econometría 1**, el estudiante:
 
 | Código | Resultado de aprendizaje |
-|---------------------|---------------------------------------------------|
+|----------------------|--------------------------------------------------|
 | **R.A.1** | Sabe cuantificar relaciones entre variables económicas. |
 | **R.A.2** | Conoce los aspectos básicos del análisis econométrico. |
 | **R.A.3** | Conoce las principales limitaciones del análisis econométrico. |
@@ -86,7 +86,7 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 ## Cronograma general
 
 | Semana | Fechas | Temas | Evaluación |
-|----|----|----|----|
+|------------------|------------------|------------------|------------------|
 | **1** | 16 – 20 jun | Repaso de estadística | — |
 | **2** | 23 – 27 jun | Repaso de estadística · Estimador OLS | **Quiz 1** · mié 25 jun |
 | **3** | 30 jun – 4 jul | Insesgamiento · Inferencia estadística | **Quiz 2** · mié 2 jul |
@@ -221,14 +221,8 @@ library(tidyverse)
 
 ## Los cuatro paneles principales
 
-```         
-┌─────────────────────┬─────────────────────┐
-│  Editor de scripts  │  Environment /       │
-│  (Scripts .R / .Rmd)│  History / Files     │
-├─────────────────────┼─────────────────────┤
-│  Consola (Console)  │  Plots / Packages /  │
-│                     │  Help / Viewer       │
-└─────────────────────┴─────────────────────┘
+```{r graf-indeed, echo=FALSE, fig.cap="", out.width="85%", fig.align="center"}
+knitr::include_graphics("Interfaz_R.png")
 ```
 
 | Panel            | Función principal                                  |
@@ -257,11 +251,8 @@ getwd()
 # Cambiar el directorio de trabajo (ajusta la ruta a tu computador)
 setwd("C:/Users/TuUsuario/Documentos/econometria1")
 
-# Alternativa recomendada: usar Proyectos de RStudio
-# File → New Project → New Directory
-```
 
-> **Recomendación:** usa siempre un **Proyecto de RStudio** (`.Rproj`) por curso/trabajo. Esto resuelve automáticamente los problemas de rutas.
+```
 
 ------------------------------------------------------------------------
 
@@ -282,7 +273,7 @@ sqrt(144)     # raíz cuadrada
 log(exp(1))   # logaritmo natural
 ```
 
-Los `#` son **comentarios**: R los ignora al ejecutar el código. Úsalos siempre para documentar tu trabajo.
+Los `#` son **comentarios**: R los ignora al ejecutar el código. Usenlos siempre para documentar tu trabajo.
 
 ## Asignación de objetos
 
@@ -295,12 +286,12 @@ y <- 3
 z <- x + y
 z
 
-# También puedes usar =, aunque <- es la convención
+# También puedes usar =, aunque <- es la convención para evitar confusiones
 nombre <- "Econometría 1"
 nombre
 ```
 
-El panel **Environment** (arriba a la derecha en RStudio) muestra todos los objetos creados en la sesión.
+El panel **Environment** muestra todos los objetos creados en la sesión.
 
 ## Tipos de datos básicos
 
@@ -602,8 +593,7 @@ confint(modelo, level = 0.95)
 2.  **Comenta tu código.** Usa `#` para explicar qué hace cada bloque.
 3.  **Usa proyectos de RStudio.** Mantén tu trabajo organizado por carpetas.
 4.  **Busca en la documentación.** `?nombre_funcion` en la consola abre la ayuda.
-5.  **Google y Stack Overflow son tus amigos.** La mayoría de errores ya los sufrió alguien más.
-6.  **No copies y pegues sin entender.** Reproducibilidad ≠ copy-paste ciego.
+5.  **No copies y pegues sin entender.** Reproducibilidad ≠ copy-paste ciego.
 
 ------------------------------------------------------------------------
 
