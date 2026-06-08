@@ -88,10 +88,10 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 | Semana | Fechas | Temas | Evaluación |
 |------------------|------------------|------------------|------------------|
 | **1** | 16 – 20 jun | Repaso de estadística | — |
-| **2** | 23 – 27 jun | Repaso de estadística · Estimador OLS | **Quiz 1** · mié 25 jun |
-| **3** | 30 jun – 4 jul | Insesgamiento · Inferencia estadística | **Quiz 2** · mié 2 jul |
+| **2** | 23 – 27 jun | Repaso de estadística · Estimador OLS | **Quiz 1** · mié 24 jun |
+| **3** | 30 jun – 4 jul | Insesgamiento · Inferencia estadística | **Quiz 2** · mié 1 jul |
 | **4** | 7 – 11 jul | Tipos de variables · Teoría asintótica | — |
-| **5** | 14 – 18 jul | Principios de inferencia causal | **Quiz 3** · mié 16 jul |
+| **5** | 14 – 18 jul | Principios de inferencia causal | **Quiz 3** · mié 15 jul |
 | **6** | 21 – 24 jul | Variable dicotómica dependiente · Presentaciones | **Examen Final** · jue 23 jul |
 
 > **Presentaciones:** Última semana de clases
