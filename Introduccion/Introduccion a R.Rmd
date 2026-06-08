@@ -221,8 +221,7 @@ library(tidyverse)
 
 ## Los cuatro paneles principales
 
-```{r graf-indeed, echo=FALSE, fig.cap="", out.width="85%", fig.align="center"}
-knitr::include_graphics("Interfaz_R.png")
+```{knitr::include_graphics("Interfaz_R.png")}
 ```
 
 | Panel            | Función principal                                  |
