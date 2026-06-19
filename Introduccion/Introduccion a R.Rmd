@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 
 > **Universidad de los Andes** \| Departamento de Economía\
 > Clase complementaria — Viernes de 7 a 10 AM\
-> Profesor magistral: Edicson Luna  ·  Asistente: Brayan David Flórez
+> Profesor magistral: Edicson Luna · Asistente: Brayan David Flórez
 
 ------------------------------------------------------------------------
 
@@ -70,7 +70,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 Al finalizar exitosamente **Econometría 1**, el estudiante:
 
 | Código | Resultado de aprendizaje |
-|------------------------------------|------------------------------------|
+|-----------------------------------|------------------------------------|
 | **R.A.1** | Sabe cuantificar relaciones entre variables económicas. |
 | **R.A.2** | Conoce los aspectos básicos del análisis econométrico. |
 | **R.A.3** | Conoce las principales limitaciones del análisis econométrico. |
@@ -138,7 +138,10 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 2.  **¿Por qué usar R?** — ventajas frente a otras herramientas\
 3.  **Configuración inicial** — instalar R y RStudio\
 4.  **Interfaz de RStudio** — paneles y flujo de trabajo\
-5.  **Primeros pasos en R** — objetos, operaciones, vectores, data frames y funciones básicas
+5.  **Primeros pasos en R** — objetos, operaciones, vectores, data frames y funciones básicas\
+6.  **Importar datos** — tres formatos que circulan en economía\
+7.  **Tablas y estadísticas descriptivas** — con datos reales\
+8.  **Gráficos** — con `ggplot2`
 
 ------------------------------------------------------------------------
 
@@ -161,22 +164,6 @@ knitr::include_graphics("Numero_de_ofertas.png")
 ```
 
 **Lectura del gráfico:** A nivel global, **R ocupa el tercer lugar** en número de ofertas de trabajo en Indeed.com, con alrededor de 45.000 publicaciones. Los tres lenguajes más demandados (SQL, Python y R) son todos de **código abierto y gratuitos**. Stata y SPSS, que son de pago, quedan muy rezagados.
-
-## Conclusión: ¿por qué R y no Stata?
-
-| Criterio                 | R            | Stata     | Python       | Excel    |
-|--------------------------|--------------|-----------|--------------|----------|
-| Costo                    | **Gratuito** | De pago   | **Gratuito** | De pago  |
-| Reproducibilidad         | Alta         | Alta      | Alta         | Baja     |
-| Econometría              | Excelente    | Excelente | Buena        | Limitada |
-| Visualización            | Excelente    | Buena     | Excelente    | Básica   |
-| Machine learning         | Excelente    | Limitada  | Excelente    | Ninguna  |
-| Demanda laboral Colombia | 2°           | 6°        | 3°           | —        |
-| Comunidad activa         | Muy grande   | Grande    | Muy grande   | Grande   |
-
-> **Conclusión:** R es gratuito, está entre los más demandados en Colombia y el mundo, y es el estándar en investigación económica reproducible. Aprender R es una inversión de alto retorno para tu carrera.
->
-> # 
 
 # Configuración inicial
 
@@ -201,18 +188,20 @@ Los **paquetes** (o librerías) extienden las capacidades de R. En este curso us
 
 ```{r instalar-paquetes, eval=FALSE}
 # Ejecuta esto UNA sola vez en tu computador
-install.packages("tidyverse")   # manipulación y visualización de datos
-install.packages("haven")       # leer archivos .dta (Stata), .sav (SPSS)
-install.packages("readxl")      # leer archivos Excel
-install.packages("stargazer")   # tablas de regresión
-install.packages("lmtest")      # pruebas sobre modelos lineales
-install.packages("sandwich")    # errores estándar robustos
+# install.packages("pacman")
 ```
 
 Una vez instalados, se cargan con `library()` al inicio de cada sesión:
 
 ```{r cargar-paquetes}
-library(tidyverse)
+library(pacman)
+p_load(tidyverse,  # manipulación y visualización de datos
+       haven,      # leer archivos .dta (Stata), .sav (SPSS)
+       readxl,     # leer archivos Excel
+       knitr,      # tablas y compilación de documentos
+       stargazer,  # tablas de regresión
+       lmtest,     # pruebas sobre modelos lineales
+       sandwich)   # errores estándar robustos
 ```
 
 ------------------------------------------------------------------------
@@ -221,7 +210,9 @@ library(tidyverse)
 
 ## Los cuatro paneles principales
 
-`{knitr::include_graphics("Interfaz_R.png")}`
+```{r graf-interfaz, echo=FALSE, fig.cap="", out.width="85%", fig.align="center"}
+knitr::include_graphics("Interfaz_R.png")
+```
 
 | Panel            | Función principal                                  |
 |------------------|----------------------------------------------------|
@@ -230,16 +221,6 @@ library(tidyverse)
 | **Environment**  | Ver los objetos creados en la sesión actual        |
 | **Plots / Help** | Ver gráficas, buscar documentación de funciones    |
 
-## Atajos de teclado útiles
-
-| Acción                       | Windows/Linux      | macOS              |
-|------------------------------|--------------------|--------------------|
-| Ejecutar línea/selección     | `Ctrl + Enter`     | `Cmd + Enter`      |
-| Insertar chunk en R Markdown | `Ctrl + Alt + I`   | `Cmd + Option + I` |
-| Compilar (Knit) el documento | `Ctrl + Shift + K` | `Cmd + Shift + K`  |
-| Comentar/descomentar líneas  | `Ctrl + Shift + C` | `Cmd + Shift + C`  |
-| Autocompletar                | `Tab`              | `Tab`              |
-
 ## Configurar el directorio de trabajo
 
 ```{r directorio-trabajo, eval=FALSE}
@@ -247,9 +228,7 @@ library(tidyverse)
 getwd()
 
 # Cambiar el directorio de trabajo (ajusta la ruta a tu computador)
-setwd("C:/Users/TuUsuario/Documentos/econometria1")
-
-
+#setwd("C:/Users/TuUsuario/Documentos/econometria1")
 ```
 
 ------------------------------------------------------------------------
@@ -271,7 +250,7 @@ sqrt(144)     # raíz cuadrada
 log(exp(1))   # logaritmo natural
 ```
 
-Los `#` son **comentarios**: R los ignora al ejecutar el código. Usenlos siempre para documentar tu trabajo.
+Los `#` son **comentarios**: R los ignora al ejecutar el código. Úsenlos siempre para documentar su trabajo.
 
 ## Asignación de objetos
 
@@ -448,8 +427,7 @@ estudiantes[estudiantes$promedio > 3.8, ]
 # Con la función subset()
 subset(estudiantes, beca == TRUE)
 
-# Con tidyverse (filter)
-library(dplyr)
+# Con tidyverse (filter) — esta es la forma que usaremos en el curso
 filter(estudiantes, semestre == 5 & promedio > 3.5)
 ```
 
@@ -459,7 +437,7 @@ filter(estudiantes, semestre == 5 & promedio > 3.5)
 # Crear nueva columna
 estudiantes$promedio_ponderado <- estudiantes$promedio * 1.1
 
-# Con mutate (tidyverse)
+# Con mutate (tidyverse) — esta es la forma que usaremos en el curso
 estudiantes <- mutate(estudiantes,
                       es_excelente = promedio >= 4.0)
 estudiantes
@@ -497,64 +475,327 @@ describir <- function(x, decimales = 2) {
 describir(estudiantes$promedio)
 ```
 
-## Leer datos externos
+------------------------------------------------------------------------
 
-```{r leer-datos, eval=FALSE}
-# CSV (el más común)
-datos <- read.csv("ruta/al/archivo.csv")
+# Importar datos
 
-# Con readr (tidyverse)
-library(readr)
-datos <- read_csv("ruta/al/archivo.csv")
+En econometría trabajan con tres formatos casi siempre. Acá aprenden a cargar cada uno.
 
-# Excel
-library(readxl)
-datos <- read_excel("ruta/al/archivo.xlsx", sheet = 1)
+La base que usamos hoy es **Saber 11 — 2019**: resultados del examen de Estado para 54.638 estudiantes colombianos. Descarguen los tres archivos de Bloque Neón y guárdenlos en la carpeta `datos/` de su proyecto:
 
-# Stata (.dta) — muy común en economía
-library(haven)
-datos <- read_dta("ruta/al/archivo.dta")
-
-# Explorar al cargar — siempre empieza con estas funciones
-dim(datos)
-head(datos)
-glimpse(datos)    # tidyverse
-summary(datos)
+```         
+SB11_2019.dta    ← formato Stata
+SB11_2019.xlsx   ← formato Excel
+SB11_2019.txt    ← texto plano separado por tabulaciones
 ```
 
-## Visualización básica con ggplot2
+## Organización del proyecto
 
-`ggplot2` (parte del tidyverse) es el estándar para gráficas en R. La lógica es añadir capas con `+`:
+La práctica más ordenada es definir las rutas al inicio del script:
 
-```{r visualizacion-basica}
-library(ggplot2)
+```{r rutas}
+# Carpeta relativa al proyecto de RStudio — ajusten si es necesario
+ruta_datos <- "datos"
+```
 
-# Histograma de promedios
-ggplot(data = estudiantes, aes(x = promedio)) +
-  geom_histogram(binwidth = 0.2, fill = "#1d6fa4", color = "white") +
+> **Tip:** si usan un **proyecto de RStudio** (`.Rproj`), el directorio de trabajo queda fijado en la carpeta del proyecto automáticamente. No necesitan `setwd()`.
+
+## `.dta` — formato Stata
+
+El formato más común en economía. Se carga con el paquete `haven`:
+
+```{r leer-dta}
+sb11 <- read_dta(file.path(ruta_datos, "SB11_2019_Stata.dta"))
+```
+
+## `.xlsx` — Excel
+
+```{r leer-xlsx}
+sb11_xl <- read_excel(file.path(ruta_datos, "SB11_2019_Excel.xlsx"))
+```
+
+> Para archivos separados por comas: `read_csv()`. Para cualquier otro separador: `read_delim(..., delim = ";")`.
+
+## Verificar que las tres versiones son iguales
+
+```{r verificar-dim}
+dim(sb11)
+dim(sb11_xl)
+```
+
+Los tres deben tener 54.638 filas y 25 columnas. A partir de aquí trabajamos con `sb11`.
+
+------------------------------------------------------------------------
+
+# Exploración inicial de una base nueva
+
+Antes de cualquier análisis, siempre hay que conocer la base.
+
+```{r explorar-dim}
+nrow(sb11)   # observaciones
+ncol(sb11)   # variables
+names(sb11)  # nombres de columnas
+```
+
+```{r explorar-head}
+head(sb11, 5)
+```
+
+`glimpse()` muestra tipo y primeros valores de cada columna. Equivalente a `describe` en Stata:
+
+```{r explorar-glimpse}
+glimpse(sb11)
+```
+
+```{r explorar-summary}
+summary(sb11)
+```
+
+------------------------------------------------------------------------
+
+# Construcción y transformación de variables
+
+## Convertir tipos
+
+Las variables importadas desde `.dta` traen etiquetas de Stata (`haven_labelled`) que a veces causan problemas. Conviene convertirlas:
+
+```{r convertir-tipos}
+sb11 <- sb11 |>
+  mutate(
+    punt_global          = as.numeric(punt_global),
+    punt_matematicas     = as.numeric(punt_matematicas),
+    punt_lectura_critica = as.numeric(punt_lectura_critica),
+    EDAD_ESTUDIANTES     = as.numeric(EDAD_ESTUDIANTES),
+    genero               = as.character(estu_genero),
+    naturaleza           = as.character(cole_naturaleza),
+    depto                = as.character(estu_depto_reside),
+    internet             = as.character(fami_tieneinternet)
+  )
+```
+
+## `mutate()` — crear variables nuevas
+
+`mutate()` es el equivalente de `gen` en Stata:
+
+```{r mutate-vars}
+sb11 <- sb11 |>
+  mutate(
+    # Variable dicotómica: 1 si es mujer
+    mujer          = if_else(genero     == "F",       1L, 0L),
+    # Variable dicotómica: 1 si el colegio es oficial
+    oficial        = if_else(naturaleza == "OFICIAL", 1L, 0L),
+    # Variable dicotómica: 1 si tiene internet en casa
+    tiene_internet = if_else(internet   == "Si",      1L, 0L),
+    # Diferencia respecto a la media nacional
+    brecha_global  = punt_global - mean(punt_global, na.rm = TRUE)
+  )
+```
+
+## Limpiar valores faltantes y extraños
+
+Revisamos NAs en las variables de interés:
+
+```{r contar-nas}
+sb11 |>
+  select(punt_global, punt_matematicas, punt_lectura_critica,
+         EDAD_ESTUDIANTES, mujer, oficial, tiene_internet) |>
+  summarise(across(everything(), ~ sum(is.na(.))))
+```
+
+Algunos registros tienen `genero == ""` (vacío). Los excluimos con `filter()` — equivalente de `drop if` en Stata:
+
+```{r filtrar-limpios}
+n_antes <- nrow(sb11)
+
+sb11 <- sb11 |>
+  filter(genero %in% c("F", "M"))
+
+cat("Eliminados:", n_antes - nrow(sb11), "\n")
+cat("Quedan:    ", nrow(sb11), "\n")
+```
+
+------------------------------------------------------------------------
+
+# Estadísticas descriptivas y tablas
+
+## Resumen de una variable
+
+```{r desc-una-var}
+sb11 |>
+  summarise(
+    n       = n(),
+    media   = mean(punt_global,   na.rm = TRUE),
+    mediana = median(punt_global, na.rm = TRUE),
+    sd      = sd(punt_global,     na.rm = TRUE),
+    minimo  = min(punt_global,    na.rm = TRUE),
+    maximo  = max(punt_global,    na.rm = TRUE)
+  )
+```
+
+## `group_by()` + `summarise()` : estadísticas por grupo
+
+Equivalente de `tabstat` en Stata:
+
+```{r desc-por-genero}
+sb11 |>
+  group_by(mujer) |>
+  summarise(
+    n            = n(),
+    media_global = mean(punt_global,          na.rm = TRUE),
+    media_mat    = mean(punt_matematicas,      na.rm = TRUE),
+    media_lc     = mean(punt_lectura_critica,  na.rm = TRUE),
+    sd_global    = sd(punt_global,             na.rm = TRUE)
+  )
+```
+
+```{r desc-por-naturaleza}
+sb11 |>
+  group_by(oficial) |>
+  summarise(
+    n            = n(),
+    media_global = mean(punt_global, na.rm = TRUE),
+    sd_global    = sd(punt_global,   na.rm = TRUE)
+  )
+```
+
+## `count()` — tabla de frecuencias
+
+```{r tabla-frecuencias}
+sb11 |>
+  count(mujer, oficial) |>
+  mutate(prop = round(n / sum(n) * 100, 1))
+```
+
+## `kable()` — presentar tablas limpias
+
+`kable()` convierte un data frame en una tabla formateada en el HTML:
+
+```{r tabla-kable}
+resumen_depto <- sb11 |>
+  group_by(depto) |>
+  summarise(
+    n            = n(),
+    media_global = round(mean(punt_global, na.rm = TRUE), 1),
+    sd_global    = round(sd(punt_global,   na.rm = TRUE), 1)
+  ) |>
+  arrange(desc(media_global)) |>
+  head(10)
+
+kable(
+  resumen_depto,
+  col.names = c("Departamento", "N", "Media puntaje global", "DE"),
+  caption   = "Top 10 departamentos por puntaje global:  Saber 11 2019"
+)
+```
+
+## Correlación entre variables
+
+```{r correlacion}
+sb11 |>
+  select(punt_matematicas, punt_lectura_critica,
+         punt_c_naturales, punt_ingles, punt_global) |>
+  cor(use = "complete.obs") |>
+  round(3)
+```
+
+------------------------------------------------------------------------
+
+# Visualización con `ggplot2`
+
+La lógica de `ggplot2` tiene tres componentes:
+
+``` r
+ggplot(data = <datos>, aes(x = <var_x>, y = <var_y>)) +
+  geom_<tipo>() +
+  labs(...)
+```
+
+Cada `+` agrega una capa al gráfico.
+
+## Histograma
+
+```{r hist-global}
+ggplot(sb11, aes(x = punt_global)) +
+  geom_histogram(binwidth = 10, fill = "steelblue", color = "white", alpha = 0.8) +
   labs(
-    title = "Distribución de promedios",
-    x     = "Promedio académico",
-    y     = "Frecuencia"
+    title   = "Distribución del puntaje global — Saber 11 2019",
+    x       = "Puntaje global",
+    y       = "Frecuencia",
+    caption = "Fuente: ICFES — Saber 11 2019. Elaboración propia."
   ) +
   theme_minimal()
 ```
 
-```{r grafico-dispersion}
-# Gráfico de dispersión — anticipo de regresión OLS
-datos_sim <- data.frame(
-  educacion = c(8, 10, 12, 14, 15, 16, 17, 18, 16, 14, 12, 11),
-  salario   = c(1.5, 2.0, 2.8, 3.5, 4.0, 4.8, 5.5, 6.2, 4.5, 3.2, 2.5, 2.2)
-)
+## Histograma por grupo con `facet_wrap()`
 
-ggplot(datos_sim, aes(x = educacion, y = salario)) +
-  geom_point(color = "#1d6fa4", size = 3) +
-  geom_smooth(method = "lm", se = TRUE, color = "#e63946") +
+```{r hist-por-genero}
+sb11 |>
+  mutate(Genero = if_else(mujer == 1, "Mujer", "Hombre")) |>
+  ggplot(aes(x = punt_global, fill = Genero)) +
+  geom_histogram(binwidth = 10, color = "white", alpha = 0.8) +
+  facet_wrap(~ Genero) +
   labs(
-    title    = "Educación vs. Salario (datos simulados)",
-    subtitle = "La línea roja es la regresión OLS — tema central del curso",
-    x        = "Años de educación",
-    y        = "Salario (millones COP)"
+    title   = "Distribución del puntaje global por género",
+    x       = "Puntaje global",
+    y       = "Frecuencia",
+    caption = "Fuente: ICFES — Saber 11 2019. Elaboración propia."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Boxplot
+
+```{r boxplot-naturaleza}
+sb11 |>
+  mutate(Colegio = if_else(oficial == 1, "Oficial", "No oficial")) |>
+  ggplot(aes(x = Colegio, y = punt_global, fill = Colegio)) +
+  geom_boxplot(alpha = 0.6) +
+  labs(
+    title   = "Puntaje global por naturaleza del colegio",
+    x       = NULL,
+    y       = "Puntaje global",
+    caption = "Fuente: ICFES — Saber 11 2019. Elaboración propia."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Gráfico de barras
+
+```{r barras-internet}
+sb11 |>
+  filter(!is.na(tiene_internet)) |>
+  mutate(Internet = if_else(tiene_internet == 1, "Con internet", "Sin internet")) |>
+  group_by(Internet) |>
+  summarise(media_global = mean(punt_global, na.rm = TRUE)) |>
+  ggplot(aes(x = Internet, y = media_global, fill = Internet)) +
+  geom_col(alpha = 0.8) +
+  geom_text(aes(label = round(media_global, 1)), vjust = -0.5) +
+  labs(
+    title   = "Puntaje global promedio según acceso a internet en casa",
+    x       = NULL,
+    y       = "Puntaje global promedio",
+    caption = "Fuente: ICFES — Saber 11 2019. Elaboración propia."
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## Gráfico de dispersión
+
+El gráfico de dispersión anticipa la regresión OLS que verán en la clase magistral de la semana 2:
+
+```{r scatter}
+ggplot(sb11, aes(x = punt_matematicas, y = punt_lectura_critica)) +
+  geom_point(alpha = 0.05, size = 0.6, color = "grey40") +
+  geom_smooth(method = "lm", color = "steelblue", se = TRUE) +
+  labs(
+    title    = "Matemáticas vs. Lectura crítica — Saber 11 2019",
+    subtitle = "La línea azul es la regresión OLS (tema de las próximas semanas)",
+    x        = "Puntaje matemáticas",
+    y        = "Puntaje lectura crítica",
+    caption  = "Fuente: ICFES — Saber 11 2019. Elaboración propia."
   ) +
   theme_minimal()
 ```
@@ -563,11 +804,12 @@ ggplot(datos_sim, aes(x = educacion, y = salario)) +
 
 # Anticipo: el modelo OLS en R
 
-En las clases magistrales aprenderás la teoría del OLS. En las clases complementarias aprenderás a estimarlo en R:
+En las clases magistrales aprenderás la teoría del OLS. Aquí un adelanto de cómo se estima en R:
 
 ```{r ols-preview}
-# Estimar una regresión lineal simple: salario ~ educación
-modelo <- lm(salario ~ educacion, data = datos_sim)
+# Estimar una regresión lineal
+modelo <- lm(punt_global ~ punt_matematicas + punt_lectura_critica + mujer + oficial,
+             data = sb11)
 
 # Ver resultados
 summary(modelo)
@@ -577,11 +819,11 @@ summary(modelo)
 # Extraer coeficientes
 coef(modelo)
 
-# Intervalos de confianza (95%)
+# Intervalos de confianza al 95%
 confint(modelo, level = 0.95)
 ```
 
-> En las próximas clases complementarias aprenderás a interpretar estos resultados, trabajar con datos reales y construir modelos de regresión múltiple.
+> En las próximas clases aprenderán a interpretar cada número de esa tabla y a construir modelos de regresión múltiple con datos reales.
 
 ------------------------------------------------------------------------
 
@@ -634,13 +876,23 @@ confint(modelo, level = 0.95)
 # 2d. Agrega una columna con la utilidad por empleado.
 ```
 
-## Ejercicio 3: Visualización
+## Ejercicio 3: Datos reales (Saber 11)
 
 ```{r ejercicio-3, eval=FALSE}
-# Usando los datos del Ejercicio 2:
-# 3a. Haz un gráfico de barras del número de empleados por empresa.
-# 3b. Haz un gráfico de dispersión entre empleados y utilidad.
-#     ¿Hay alguna relación visual entre estas dos variables?
+# Usando la base sb11 que cargaron hoy:
+
+# 3a. Calculen la media y la desviación estándar del puntaje de inglés
+#     (punt_ingles) separado por género. ¿Qué grupo tiene mayor puntaje promedio?
+
+# 3b. Creen una variable `estrato_num` que tome valores 1 a 6 según
+#     fami_estratovivienda (ignoren "Sin Estrato" y los vacíos).
+#     Calculen el puntaje global promedio por estrato. ¿Qué patrón observan?
+
+# 3c. Hagan un boxplot del puntaje de matemáticas separado por si el
+#     estudiante tiene computador en casa (fami_tienecomputador).
+
+# 3d. Hagan un gráfico de dispersión entre EDAD_ESTUDIANTES y punt_global.
+#     ¿Hay alguna tendencia? ¿En qué dirección?
 ```
 
 ------------------------------------------------------------------------
