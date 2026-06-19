@@ -31,9 +31,9 @@ knitr::opts_chunk$set(
 
 ------------------------------------------------------------------------
 
-> **Universidad de los Andes** \| Departamento de Economía\
+> **Universidad de los Andes** \| Facultad de Economía\
 > Clase complementaria — Viernes de 7 a 10 AM\
-> Profesor magistral: Edicson Luna · Asistente: Brayan David Flórez
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
 
 ------------------------------------------------------------------------
 
