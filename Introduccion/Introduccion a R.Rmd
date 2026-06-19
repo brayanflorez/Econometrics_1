@@ -787,8 +787,9 @@ sb11 |>
 El gráfico de dispersión anticipa la regresión OLS que verán en la clase magistral de la semana 2:
 
 ```{r scatter}
+
 ggplot(sb11, aes(x = punt_matematicas, y = punt_lectura_critica)) +
-  geom_point(alpha = 0.05, size = 0.6, color = "grey40") +
+  geom_point(alpha = 0.05, size = 0.6, color = "red") +
   geom_smooth(method = "lm", color = "steelblue", se = TRUE) +
   labs(
     title    = "Matemáticas vs. Lectura crítica — Saber 11 2019",
