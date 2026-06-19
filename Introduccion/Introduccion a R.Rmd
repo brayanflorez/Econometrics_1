@@ -1,5 +1,5 @@
 ---
-title: "Clase 0: Introducción a R"
+title: "Clase 1: Introducción a R"
 subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
 author: "Brayan David Flórez | Profesor complementario"
 date: "2026-19"
@@ -56,7 +56,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 ## Información del equipo pedagógico
 
 | Rol | Nombre | Correo |
-|-------------------------|--------------------|---------------------------|
+|------------------------|------------------------|------------------------|
 | Profesor magistral | Edicson Luna | [edicson\@sas.upenn.edu](mailto:edicson@sas.upenn.edu){.email} |
 | Profesor complementario. | Brayan David Flórez | [b.florezl\@uniandes.edu.co](mailto:b.florezl@uniandes.edu.co){.email} |
 
@@ -70,7 +70,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 Al finalizar exitosamente **Econometría 1**, el estudiante:
 
 | Código | Resultado de aprendizaje |
-|----------------------|--------------------------------------------------|
+|------------------------------------|------------------------------------|
 | **R.A.1** | Sabe cuantificar relaciones entre variables económicas. |
 | **R.A.2** | Conoce los aspectos básicos del análisis econométrico. |
 | **R.A.3** | Conoce las principales limitaciones del análisis econométrico. |
@@ -221,8 +221,7 @@ library(tidyverse)
 
 ## Los cuatro paneles principales
 
-```{knitr::include_graphics("Interfaz_R.png")}
-```
+`{knitr::include_graphics("Interfaz_R.png")}`
 
 | Panel            | Función principal                                  |
 |------------------|----------------------------------------------------|
