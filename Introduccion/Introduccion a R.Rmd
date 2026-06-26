@@ -56,7 +56,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 ## Información del equipo pedagógico
 
 | Rol | Nombre | Correo |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Profesor magistral | Edicson Luna | [edicson\@sas.upenn.edu](mailto:edicson@sas.upenn.edu){.email} |
 | Profesor complementario. | Brayan David Flórez | [b.florezl\@uniandes.edu.co](mailto:b.florezl@uniandes.edu.co){.email} |
 
@@ -70,7 +70,7 @@ El conjunto de herramientas estadísticas que usan los economistas para hacer es
 Al finalizar exitosamente **Econometría 1**, el estudiante:
 
 | Código | Resultado de aprendizaje |
-|-----------------------------------|------------------------------------|
+|----|----|
 | **R.A.1** | Sabe cuantificar relaciones entre variables económicas. |
 | **R.A.2** | Conoce los aspectos básicos del análisis econométrico. |
 | **R.A.3** | Conoce las principales limitaciones del análisis econométrico. |
@@ -86,7 +86,7 @@ Al finalizar exitosamente **Econometría 1**, el estudiante:
 ## Cronograma general
 
 | Semana | Fechas | Temas | Evaluación |
-|------------------|------------------|------------------|------------------|
+|----|----|----|----|
 | **1** | 16 – 20 jun | Repaso de estadística | — |
 | **2** | 23 – 27 jun | Repaso de estadística · Estimador OLS | **Quiz 1** · mié 24 jun |
 | **3** | 30 jun – 4 jul | Insesgamiento · Inferencia estadística | **Quiz 2** · mié 1 jul |

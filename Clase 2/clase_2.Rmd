@@ -1,0 +1,525 @@
+---
+title: "Clase 2: Introducción al modelo OLS"
+subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
+author: "Brayan David Flórez | Profesor complementario"
+date: "2026-19"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    number_sections: true
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+------------------------------------------------------------------------
+
+> **Universidad de los Andes** \| Facultad de Economía\
+> Clase complementaria — Viernes 27 de junio · 7 a 8:30 AM\
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
+
+------------------------------------------------------------------------
+
+# ¿Qué vimos la semana pasada?
+
+La semana pasada aprendimos a:
+
+- Importar bases de datos (`.dta`, `.xlsx`), explorarlas y limpiarlas.
+- Crear variables nuevas con `mutate()` e `if_else()`.
+- Calcular estadísticas descriptivas con `group_by()` + `summarise()`.
+- Visualizar distribuciones con `ggplot2`.
+
+Hoy damos el salto al análisis que es el corazón del curso: el **modelo
+de regresión lineal simple (OLS)**.
+
+# ¿Qué veremos hoy?
+
+1.  ¿Qué pregunta responde una regresión?\
+2.  Visualizar la relación entre dos variables.\
+3.  Estimar la regresión con `lm()`.\
+4.  Interpretar los coeficientes en cuatro especificaciones distintas.\
+5.  El $R^2$ y qué tan bien ajusta el modelo.
+
+------------------------------------------------------------------------
+
+# Paquetes
+
+```{r paquetes}
+library(pacman)
+p_load(tidyverse,   # dplyr, ggplot2, etc.
+       haven,       # read_dta
+       broom,       # tidy(), glance()
+       modelsummary # tablas de regresión
+       )
+```
+
+# Los datos de hoy
+
+Usamos la base de **Finanzas territoriales municipales** de Colombia
+(2015–2019). Cada fila es un municipio en un año. Las variables están en
+**millones de pesos constantes** (excepto el PIB departamental y
+nacional, que están en **miles de millones** de pesos constantes de
+2015).
+
+```{r datos}
+ruta_datos <- "datos"
+
+fin <- read_dta(file.path(ruta_datos, "Finanzas_territoriales.dta"))
+
+glimpse(fin)
+```
+
+Las variables que vamos a usar hoy:
+
+| Variable | Descripción | Unidad |
+|------------------------|------------------------|------------------------|
+| `INGRESO_TRIBUTARIO` | Ingresos tributarios del municipio | Millones COP |
+| `GASTO_FUNCIONAMIENTO` | Gasto de funcionamiento del municipio | Millones COP |
+| `TRANSFERENCIAS_SGP` | Transferencias del Sistema General de Participaciones | Millones COP |
+| `POBLACION` | Población total del municipio | Habitantes |
+| `PIB_DEPTO` | PIB del departamento (solo varía por depto × año) | Miles de millones COP |
+| `PIB_NACIONAL` | PIB nacional (varía solo por año) | Miles de millones COP |
+
+> **Nota:** el `PIB_NACIONAL` está en miles de millones, igual que
+> `PIB_DEPTO`. Si quieren construir proporciones, asegúrense de que las
+> unidades sean consistentes.
+
+------------------------------------------------------------------------
+
+# ¿Qué pregunta responde una regresión?
+
+La magistral ya mostró esto formalmente. Aquí la intuición:
+
+> **Pregunta:** ¿Cómo cambia, *en promedio*, el **gasto de
+> funcionamiento** de un municipio cuando sus **ingresos tributarios**
+> aumentan en un millón de pesos?
+
+Eso es exactamente lo que estima $\hat{\beta}_1$ en:
+
+$$\text{Gasto}_i = \beta_0 + \beta_1 \cdot \text{Ingreso}_i + \varepsilon_i$$
+
+El truco es que **fijamos todo lo demás** (en la regresión simple, el
+error captura todo lo que no incluimos) y solo miramos cómo varía $Y$
+con $X$.
+
+------------------------------------------------------------------------
+
+# Paso 1: ver los datos antes de regresar
+
+Antes de estimar cualquier modelo, siempre vale la pena **ver** la
+relación entre las variables. Una regresión sin gráfico es como manejar
+con los ojos cerrados.
+
+```{r scatter-base}
+fin_limpio <- fin |>
+  filter(
+    !is.na(INGRESO_TRIBUTARIO),
+    !is.na(GASTO_FUNCIONAMIENTO),
+    INGRESO_TRIBUTARIO > 0,
+    GASTO_FUNCIONAMIENTO > 0
+  )
+
+ggplot(fin_limpio, aes(x = INGRESO_TRIBUTARIO, y = GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha = 0.3, color = "steelblue", size = 1) +
+  labs(
+    title    = "Gasto de funcionamiento vs. Ingreso tributario",
+    subtitle = "Municipios colombianos, 2015–2019",
+    x        = "Ingreso tributario (millones COP)",
+    y        = "Gasto de funcionamiento (millones COP)",
+    caption  = "Fuente: Finanzas territoriales municipales."
+  ) +
+  theme_minimal()
+```
+
+> **¿Qué ven?** Hay una relación positiva, pero también **valores
+> extremos (outliers)** que estiran el gráfico. Las ciudades grandes
+> (Bogotá, Medellín, etc.) tienen ingresos y gastos muy por encima del
+> resto. Esto es un patrón típico en datos económicos con distribuciones
+> sesgadas. Una solución frecuente: trabajar en **logaritmos**.
+
+```{r scatter-log}
+ggplot(fin_limpio, aes(x = INGRESO_TRIBUTARIO, y = GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha = 0.3, color = "steelblue", size = 1) +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE, linewidth = 1) +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  labs(
+    title    = "Gasto de funcionamiento vs. Ingreso tributario (escala log)",
+    subtitle = "La línea roja es la regresión OLS — cada eje está en escala logarítmica",
+    x        = "log(Ingreso tributario)",
+    y        = "log(Gasto de funcionamiento)",
+    caption  = "Fuente: Finanzas territoriales municipales."
+  ) +
+  theme_minimal()
+```
+
+En escala logarítmica la relación es **casi perfectamente lineal**. Eso
+ya nos dice que la especificación log-log probablemente va a ajustar muy
+bien.
+
+------------------------------------------------------------------------
+
+# Paso 2: estimar la regresión con `lm()`
+
+La función central es `lm(y ~ x, data = ...)`. Guardamos el resultado en
+un objeto y lo inspeccionamos con `summary()`.
+
+```{r modelo-niveles}
+# Modelo en niveles: Y = b0 + b1*X + u
+m1 <- lm(GASTO_FUNCIONAMIENTO ~ INGRESO_TRIBUTARIO, data = fin_limpio)
+
+summary(m1)
+```
+
+La tabla tiene cuatro columnas para cada coeficiente:
+
+| Columna      | ¿Qué es?                                                    |
+|------------------------------------|------------------------------------|
+| `Estimate`   | $\hat{\beta}$ — el coeficiente estimado                     |
+| `Std. Error` | $\text{se}(\hat{\beta})$ — el error estándar                |
+| `t value`    | $\hat{\beta} / \text{se}(\hat{\beta})$ — el estadístico $t$ |
+| `Pr(>|t|)`   | p-valor de la prueba $H_0: \beta = 0$                       |
+
+Las estrellas `*`, `**`, `***` indican significancia al 10%, 5% y 1%.
+
+------------------------------------------------------------------------
+
+# Paso 3: las cuatro formas funcionales
+
+La presentación de Edicson las resume así. Lo crucial es que **el
+coeficiente se calcula siempre de la misma forma** (OLS), pero la
+interpretación cambia según las unidades de $X$ y $Y$.
+
+## Resumen en una tabla
+
+| Modelo | Ecuación | Interpretación de $\hat\beta_1$ |
+|------------------------|------------------------|------------------------|
+| **nivel–nivel** | $Y = \beta_0 + \beta_1 X$ | $\Delta Y = \hat\beta_1 \cdot \Delta X$ (en unidades) |
+| **log–nivel** | $\ln Y = \beta_0 + \beta_1 X$ | $\%\Delta Y \approx 100\,\hat\beta_1 \cdot \Delta X$ |
+| **nivel–log** | $Y = \beta_0 + \beta_1 \ln X$ | $\Delta Y \approx (\hat\beta_1/100) \cdot \%\Delta X$ |
+| **log–log** | $\ln Y = \beta_0 + \beta_1 \ln X$ | $\%\Delta Y = \hat\beta_1 \cdot \%\Delta X$ (elasticidad) |
+
+## Construir las variables en log
+
+```{r crear-logs}
+fin_limpio <- fin_limpio |>
+  mutate(
+    log_gasto  = log(GASTO_FUNCIONAMIENTO),
+    log_ing    = log(INGRESO_TRIBUTARIO)
+  )
+```
+
+## Estimación de los cuatro modelos
+
+```{r cuatro-modelos}
+m_nn <- lm(GASTO_FUNCIONAMIENTO ~ INGRESO_TRIBUTARIO, data = fin_limpio)  # nivel-nivel
+m_ln <- lm(log_gasto             ~ INGRESO_TRIBUTARIO, data = fin_limpio)  # log-nivel
+m_nl <- lm(GASTO_FUNCIONAMIENTO  ~ log_ing,            data = fin_limpio)  # nivel-log
+m_ll <- lm(log_gasto             ~ log_ing,            data = fin_limpio)  # log-log
+```
+
+```{r tabla-cuatro}
+modelsummary(
+  list(
+    "Nivel-Nivel" = m_nn,
+    "Log-Nivel"   = m_ln,
+    "Nivel-Log"   = m_nl,
+    "Log-Log"     = m_ll
+  ),
+  stars      = TRUE,
+  gof_map    = c("nobs", "r.squared"),
+  coef_rename = c(
+    "INGRESO_TRIBUTARIO" = "Ingreso tributario",
+    "log_ing"            = "log(Ingreso tributario)"
+  ),
+  title = "Cuatro especificaciones del modelo: Gasto ~ Ingreso tributario"
+)
+```
+
+------------------------------------------------------------------------
+
+# Paso 4: interpretar cada modelo
+
+## Modelo 1 — Nivel–nivel
+
+$$\widehat{\text{Gasto}}_i = \hat\beta_0 + \hat\beta_1 \cdot \text{Ingreso}_i$$
+
+```{r interp-nn}
+tidy(m_nn)
+```
+
+> **Interpretación:** un aumento de **1 millón de pesos** en los
+> ingresos tributarios de un municipio está asociado, en promedio, con
+> un aumento de $\hat\beta_1$ millones de pesos en el gasto de
+> funcionamiento.
+
+```{r interp-nn-media}
+# ¿Qué tan grande es ese efecto respecto a la media del gasto?
+media_gasto <- mean(fin_limpio$GASTO_FUNCIONAMIENTO, na.rm = TRUE)
+
+b1_nn <- coef(m_nn)["INGRESO_TRIBUTARIO"]
+
+cat("b1 estimado:", round(b1_nn, 4), "\n")
+cat("Media del gasto:", round(media_gasto, 1), "millones\n")
+cat("Efecto relativo a la media:", round(b1_nn / media_gasto * 100, 4), "%\n")
+```
+
+> **¿Qué tan grande es el efecto?** el efecto representa apenas un
+> `r round(b1_nn / media_gasto * 100, 4)`% de la media del gasto. No es
+> un efecto muy grande.
+
+**¿Tiene sentido el intercepto** $\hat\beta_0$? Aquí el intercepto es el
+gasto esperado cuando el ingreso tributario es **cero**, o cual no tiene
+mucho sentido económico (ningún municipio tiene ingreso cero). Podemos
+centrar la variable para que el intercepto sea interpretable:
+
+```{r centrar}
+fin_limpio <- fin_limpio |>
+  mutate(ing_centrado = INGRESO_TRIBUTARIO - mean(INGRESO_TRIBUTARIO, na.rm = TRUE))
+
+m_centrado <- lm(GASTO_FUNCIONAMIENTO ~ ing_centrado, data = fin_limpio)
+tidy(m_centrado)
+```
+
+> Ahora $\hat\beta_0$ es el gasto esperado para un municipio con el
+> **ingreso promedio**. El coeficiente $\hat\beta_1$ **no cambia**:
+> centrar una variable no afecta la pendiente.
+
+## Modelo 2 — Log–nivel
+
+$$\ln(\widehat{\text{Gasto}}_i) = \hat\beta_0 + \hat\beta_1 \cdot \text{Ingreso}_i$$
+
+```{r interp-ln}
+b1_ln <- coef(m_ln)["INGRESO_TRIBUTARIO"]
+cat("b1 =", round(b1_ln, 7), "\n")
+cat("Efecto porcentual de +1 millón:", round(b1_ln * 100, 5), "%\n")
+```
+
+> **Interpretación:** un aumento de 1 millón de pesos en los ingresos
+> tributarios está asociado, en promedio, con un aumento de
+> $100 \times \hat\beta_1 \approx$ `r round(b1_ln*100, 5)`% en el gasto
+> de funcionamiento.
+
+## Modelo 3 — Nivel–log
+
+$$\widehat{\text{Gasto}}_i = \hat\beta_0 + \hat\beta_1 \cdot \ln(\text{Ingreso}_i)$$
+
+```{r interp-nl}
+b1_nl <- coef(m_nl)["log_ing"]
+cat("b1 =", round(b1_nl, 2), "\n")
+cat("Efecto de +1% en ingreso:", round(b1_nl / 100, 2), "millones\n")
+```
+
+> **Interpretación:** un aumento de **1%** en los ingresos tributarios
+> está asociado, en promedio, con un aumento de
+> $\hat\beta_1 / 100 \approx$ `r round(b1_nl/100, 2)` millones de pesos
+> en el gasto de funcionamiento.
+
+## Modelo 4 — Log–log (elasticidad)
+
+$$\ln(\widehat{\text{Gasto}}_i) = \hat\beta_0 + \hat\beta_1 \cdot \ln(\text{Ingreso}_i)$$
+
+```{r interp-ll}
+b1_ll <- coef(m_ll)["log_ing"]
+cat("Elasticidad estimada:", round(b1_ll, 3), "\n")
+```
+
+> **Interpretación:** un aumento de **1%** en los ingresos tributarios
+> está asociado, en promedio, con un aumento de `r round(b1_ll, 3)`% en
+> el gasto de funcionamiento. Como la elasticidad es menor a 1, decimos
+> que el gasto es **inelástico** respecto al ingreso tributario.
+>
+> **¿Por qué este modelo?** La especificación log–log captura relaciones
+> que son lineales en *porcentajes*, que son muy comunes en economía.
+> Además, como vimos en el scatter, la relación es casi perfectamente
+> lineal en escala logarítmica.
+
+------------------------------------------------------------------------
+
+# Paso 5: bondad de ajuste ($R^2$)
+
+El $R^2$ mide qué fracción de la variación de $Y$ explica el modelo:
+
+$$R^2 = 1 - \frac{\text{SCR}}{\text{SCT}} = \frac{\text{SCE}}{\text{SCT}}$$
+
+```{r r2}
+glance(m_nn)
+glance(m_ll)
+```
+
+```{r r2-comparacion}
+tibble(
+  Modelo    = c("Nivel-Nivel", "Log-Nivel", "Nivel-Log", "Log-Log"),
+  R2        = c(glance(m_nn)$r.squared,
+                glance(m_ln)$r.squared,
+                glance(m_nl)$r.squared,
+                glance(m_ll)$r.squared)
+) |>
+  mutate(R2 = round(R2, 4)) |>
+  arrange(desc(R2))
+```
+
+> **Ojo con comparar** $R^2$ entre especificaciones que tienen distintas
+> variables dependientes (por ejemplo, nivel-nivel vs. log-nivel). El
+> $R^2$ de un modelo con $\ln Y$ como dependiente mide qué fracción de
+> la variación de *los logaritmos* explica el modelo, no la misma cosa
+> que el $R^2$ cuando la dependiente es $Y$ en niveles.
+
+**¿Qué nos dice el** $R^2$?
+
+- La variación del ingreso tributario **por sí sola** explica el
+  `r round(glance(m_ll)$r.squared * 100, 1)`% de la variación del
+  logaritmo del gasto de funcionamiento en el modelo log–log.
+- Añadir más regresores (regresión múltiple) puede aumentar el $R^2$,
+  pero eso no garantiza mejores estimaciones: tema de las próximas
+  semanas.
+
+------------------------------------------------------------------------
+
+# Proporciones y porcentajes como variable dependiente
+
+Una situación frecuente en economía: la variable dependiente es una
+**proporción** (entre 0 y 1) o un **porcentaje**.
+
+```{r prop}
+fin_limpio <- fin_limpio |>
+  mutate(
+    # Participación del PIB departamental en el PIB nacional (%)
+    # OJO: las dos variables están en miles de millones, las unidades son
+    # consistentes, así que la razón ya es una proporción adimensional
+    prop_pib = PIB_DEPTO / PIB_NACIONAL
+  )
+
+m_prop <- lm(prop_pib ~ INGRESO_TRIBUTARIO, data = fin_limpio)
+b1_prop <- coef(m_prop)["INGRESO_TRIBUTARIO"]
+
+cat("b1 =", formatC(b1_prop, format = "e", digits = 3), "\n")
+cat("Efecto en pp:", formatC(b1_prop * 100, format = "e", digits = 3), "\n")
+```
+
+> **Interpretación:** un aumento de 1 millón de pesos en los ingresos
+> tributarios está asociado, en promedio, con un aumento de
+> `r formatC(b1_prop * 100, format = "e", digits = 2)` puntos
+> porcentuales en la participación del PIB departamental en el PIB
+> nacional. El efecto es diminuto porque estamos hablando de la
+> proporción del PIB de **todo el país**.
+
+------------------------------------------------------------------------
+
+# Visualizar los cuatro modelos
+
+Una imagen vale más que una tabla. Este gráfico muestra los cuatro
+ajustes sobre los datos:
+
+```{r plot-cuatro, fig.height=8, fig.width=8}
+p_nn <- ggplot(fin_limpio, aes(x = INGRESO_TRIBUTARIO, y = GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha = 0.2, color = "grey50", size = 0.8) +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Nivel–Nivel",
+       x = "Ingreso tributario", y = "Gasto de funcionamiento") +
+  theme_minimal()
+
+p_ln <- ggplot(fin_limpio, aes(x = INGRESO_TRIBUTARIO, y = log_gasto)) +
+  geom_point(alpha = 0.2, color = "grey50", size = 0.8) +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Log(Y) – Nivel",
+       x = "Ingreso tributario", y = "log(Gasto)") +
+  theme_minimal()
+
+p_nl <- ggplot(fin_limpio, aes(x = log_ing, y = GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha = 0.2, color = "grey50", size = 0.8) +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Nivel – Log(X)",
+       x = "log(Ingreso tributario)", y = "Gasto de funcionamiento") +
+  theme_minimal()
+
+p_ll <- ggplot(fin_limpio, aes(x = log_ing, y = log_gasto)) +
+  geom_point(alpha = 0.2, color = "grey50", size = 0.8) +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Log(Y) – Log(X)",
+       x = "log(Ingreso tributario)", y = "log(Gasto)") +
+  theme_minimal()
+
+library(patchwork)
+(p_nn | p_ln) / (p_nl | p_ll) +
+  plot_annotation(
+    title   = "Las cuatro formas funcionales sobre los mismos datos",
+    caption = "Fuente: Finanzas territoriales municipales, 2015–2019."
+  )
+```
+
+------------------------------------------------------------------------
+
+# Tabla resumen de interpretaciones
+
+| Modelo | $\hat\beta_1$ | Pregunta que responde |
+|------------------------|------------------------|------------------------|
+| Nivel–nivel | +0.29 | ¿En cuántos *millones COP* cambia el gasto si el ingreso sube *1 millón*? |
+| Log–nivel | +0.000012 | ¿En qué *%* cambia el gasto si el ingreso sube *1 millón*? |
+| Nivel–log | +177 | ¿En cuántos *millones COP* cambia el gasto si el ingreso sube *1%*? |
+| Log–log | +0.58 | ¿En qué *%* cambia el gasto si el ingreso sube *1%*? (elasticidad) |
+
+> Los valores exactos salen de sus propias estimaciones. La tabla es
+> para que recuerden **qué pregunta responde cada especificación**.
+
+------------------------------------------------------------------------
+
+# Ejercicio para la sesión
+
+Con la misma base, estimen la siguiente regresión:
+
+$$\ln(\text{Gasto}_i) = \beta_0 + \beta_1 \ln(\text{Transferencias SGP}_i) + \varepsilon_i$$
+
+1.  Creen las variables en logaritmo (filtren primero para quedarse solo
+    con observaciones con transferencias positivas).
+2.  Hagan el scatter (en escala log) antes de estimar.
+3.  Estimen el modelo con `lm()` y usen `tidy()` para ver los
+    coeficientes.
+4.  **Interpreten** $\hat\beta_1$: ¿qué le pasa al gasto si las
+    transferencias del SGP aumentan 1%?
+5.  Reporten el $R^2$ y compárenlo con el modelo de ingreso tributario
+    log–log. ¿Cuál variable "explica mejor" el gasto?
+
+```{r ejercicio, eval=FALSE}
+# Espacio para trabajar en clase
+fin_ej <- fin_limpio |>
+  filter(TRANSFERENCIAS_SGP > 0) |>
+  mutate(log_sgp = log(TRANSFERENCIAS_SGP))
+
+# 1. Scatter
+
+
+
+# 2. Regresión
+
+
+
+# 3. Interpretación del coeficiente
+
+
+
+# 4. R2
+
+
+
+```
+
+------------------------------------------------------------------------
+
+*Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 \|
+Universidad de los Andes \| 2026-19*
