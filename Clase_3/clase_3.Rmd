@@ -1,0 +1,1044 @@
+---
+title: "Clase 3: OLS en R "
+subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
+author: "Brayan David Flórez | Profesor complementario"
+date: "2026-19"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+------------------------------------------------------------------------
+
+> **Universidad de los Andes** \| Facultad de Economía\
+> Clase complementaria — Viernes 4 de julio · 7 a 10 AM\
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
+
+------------------------------------------------------------------------
+
+# 
+
+------------------------------------------------------------------------
+
+# Paquetes
+
+```{r paquetes}
+library(pacman)
+p_load(
+  tidyverse,    # dplyr, ggplot2, tidyr
+  haven,        # read_dta
+  broom,        # tidy(), glance(), augment()
+  modelsummary, # tablas de regresión
+  patchwork,    # combinar gráficos
+  scales,       # formato de ejes
+  pandoc        #para exportar regresiones
+)
+```
+
+# Los datos
+
+Usamos **Finanzas territoriales municipales** de Colombia (2015–2019). Cada fila = un municipio en un año. Todas las variables financieras están en **millones de pesos constantes de 2015**, excepto `PIB_DEPTO` y `PIB_NACIONAL` que están en **miles de millones**.
+
+```{r datos}
+ruta_datos <- "datos"
+
+fin <- read_dta(file.path(ruta_datos, "Finanzas_territoriales.dta")) |>
+  filter(
+    !is.na(INGRESO_TRIBUTARIO),
+    !is.na(GASTO_FUNCIONAMIENTO),
+    !is.na(TRANSFERENCIAS_SGP),
+    INGRESO_TRIBUTARIO   > 0,
+    GASTO_FUNCIONAMIENTO > 0,
+    TRANSFERENCIAS_SGP   > 0
+  ) |>
+  mutate(
+    log_gasto  = log(GASTO_FUNCIONAMIENTO),
+    log_ing    = log(INGRESO_TRIBUTARIO),
+    log_sgp    = log(TRANSFERENCIAS_SGP),
+    log_pob    = log(POBLACION)
+  )
+
+glimpse(fin)
+```
+
+------------------------------------------------------------------------
+
+# BLOQUE A: Regresión en R: `lm()`, tablas y exportación
+
+## ¿Qué pregunta responde una regresión?
+
+Antes de correr código: la regresión responde una pregunta de la forma
+
+> "¿Cómo cambia $Y$, **en promedio**, cuando $X$ aumenta en una unidad, manteniendo todo lo demás constante?"
+
+Esa pregunta la formaliza:
+
+$$Y_i = \beta_0 + \beta_1 X_i + \varepsilon_i, \qquad \mathbb{E}[\varepsilon_i \mid X_i] = 0$$
+
+OLS elige $\hat\beta_0$ y $\hat\beta_1$ para **minimizar la suma de residuos al cuadrado** $\sum_{i=1}^n e_i^2$, lo que da las fórmulas que vieron en la magistral.
+
+## Ver primero, regresar después
+
+Siempre hay que ver los datos antes de estimar. Un scatter muestra si la relación es lineal, si hay outliers, y qué especificación tiene sentido.
+
+```{r scatter-base}
+ggplot(fin, aes(x = INGRESO_TRIBUTARIO, y = GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha = 0.25, color = "steelblue", size = 1) +
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma) +
+  labs(
+    title   = "Gasto de funcionamiento vs. Ingreso tributario",
+    subtitle = "Municipios colombianos, 2015–2019",
+    x = "Ingreso tributario (millones COP)",
+    y = "Gasto de funcionamiento (millones COP)",
+    caption = "Fuente: Finanzas territoriales municipales."
+  ) +
+  theme_minimal()
+```
+
+La distribución está muy sesgada: pocas ciudades grandes dominan el gráfico. En escala logarítmica la relación es casi perfectamente lineal:
+
+```{r scatter-log}
+ggplot(fin, aes(x = log_ing, y = log_gasto)) +
+  geom_point(alpha = 0.25, color = "steelblue", size = 1) +
+  geom_smooth(method = "lm", color = "firebrick", se = TRUE, linewidth = 0.9) +
+  labs(
+    title    = "log(Gasto) vs. log(Ingreso tributario)",
+    subtitle = "La línea roja es la recta OLS",
+    x = "log(Ingreso tributario)",
+    y = "log(Gasto de funcionamiento)",
+    caption = "Fuente: Finanzas territoriales municipales."
+  ) +
+  theme_minimal()
+```
+
+## Estimar con `lm()`
+
+```{r lm-simple}
+modelo <- lm(log_gasto ~ log_ing, data = fin)
+```
+
+La función `summary()` muestra la salida completa:
+
+```{r summary}
+summary(modelo)
+```
+
+**Anatomía de la salida:**
+
+| Elemento      | ¿Qué es?                                             |
+|---------------|------------------------------------------------------|
+| `Estimate`    | $\hat\beta$                                          |
+| `Std. Error`  | $\text{se}(\hat\beta)$                               |
+| `t value`     | $\hat\beta / \text{se}(\hat\beta)$ — estadístico $t$ |
+| `Pr(>|t|)`    | p-valor de $H_0: \beta = 0$                          |
+| `R-squared`   | $R^2$ — fracción de varianza explicada               |
+| `F-statistic` | prueba de significancia conjunta                     |
+
+Con `broom` obtenemos la salida en formato de data frame, más fácil de manipular:
+
+```{r broom}
+tidy(modelo)    # coeficientes
+glance(modelo)  # métricas globales (R2, F, AIC...)
+```
+
+## Regresión múltiple
+
+Añadir regresores es simplemente sumar términos en la fórmula:
+
+```{r lm-multiple}
+modelo_mult <- lm(log_gasto ~ log_ing + log_sgp + log_pob, data = fin)
+tidy(modelo_mult)
+glance(modelo_mult)
+```
+
+## Tablas de regresión con `modelsummary`
+
+`modelsummary` compara varios modelos en una sola tabla (equivalente a `outreg2` en Stata):
+
+```{r tabla-modelos}
+modelos <- list(
+  "(1) Simple"   = lm(log_gasto ~ log_ing,                    data = fin),
+  "(2) + SGP"    = lm(log_gasto ~ log_ing + log_sgp,          data = fin),
+  "(3) + Pob."   = lm(log_gasto ~ log_ing + log_sgp + log_pob, data = fin)
+)
+
+modelsummary(
+  modelos,
+  stars      = TRUE,
+  gof_map    = c("nobs", "r.squared", "adj.r.squared"),
+  coef_rename = c(
+    "(Intercept)" = "Intercepto",
+    "log_ing"     = "log(Ingreso tributario)",
+    "log_sgp"     = "log(Transferencias SGP)",
+    "log_pob"     = "log(Población)"
+  ),
+  title = "Variable dependiente: log(Gasto de funcionamiento)"
+)
+```
+
+### Exportar la tabla
+
+```{r exportar-tabla, eval=FALSE}
+# A Word (.docx)  
+modelsummary(
+  modelos,
+  stars   = TRUE,
+  gof_map = c("nobs", "r.squared"),
+  output  = file.path("resultados", "tabla_regresiones.docx")
+)
+
+# A LaTeX (para quienes usen Overleaf)
+modelsummary(
+  modelos,
+  stars   = TRUE,
+  output  = file.path("resultados", "tabla_regresiones.tex")
+)
+```
+
+> **Tip para los trabajos:** creen la carpeta `resultados/` dentro de su proyecto antes de exportar.
+
+------------------------------------------------------------------------
+
+# BLOQUE B: Las 4 formas funcionales
+
+La forma en que especifican $X$ e $Y$ cambia completamente la interpretación de $\hat\beta_1$. La fórmula de OLS no cambia; lo que cambia es qué pregunta responde el coeficiente.
+
+## Tabla resumen
+
+| Modelo | Ecuación | Interpretación de $\hat\beta_1$ |
+|------------------------|------------------------|------------------------|
+| **Nivel–nivel** | $Y = \beta_0 + \beta_1 X$ | $\Delta Y = \hat\beta_1 \cdot \Delta X$ (en unidades) |
+| **Log–nivel** | $\ln Y = \beta_0 + \beta_1 X$ | $\%\Delta Y \approx 100\hat\beta_1 \cdot \Delta X$ |
+| **Nivel–log** | $Y = \beta_0 + \beta_1 \ln X$ | $\Delta Y \approx \frac{\hat\beta_1}{100} \cdot \%\Delta X$ |
+| **Log–log** | $\ln Y = \beta_0 + \beta_1 \ln X$ | $\%\Delta Y = \hat\beta_1 \cdot \%\Delta X$ (elasticidad) |
+
+## Estimación y lectura de coeficientes
+
+```{r cuatro-modelos}
+m_nn <- lm(GASTO_FUNCIONAMIENTO ~ INGRESO_TRIBUTARIO, data = fin)
+m_ln <- lm(log_gasto            ~ INGRESO_TRIBUTARIO, data = fin)
+m_nl <- lm(GASTO_FUNCIONAMIENTO ~ log_ing,            data = fin)
+m_ll <- lm(log_gasto            ~ log_ing,            data = fin)
+
+# Extraer b1 de cada uno
+b1 <- c(
+  nn = coef(m_nn)["INGRESO_TRIBUTARIO"],
+  ln = coef(m_ln)["INGRESO_TRIBUTARIO"],
+  nl = coef(m_nl)["log_ing"],
+  ll = coef(m_ll)["log_ing"]
+)
+
+# Interpretación traducida a lenguaje natural
+cat("Nivel-Nivel:  +1M COP en ingreso → +", round(b1[1], 3),
+    "M COP en gasto\n")
+cat("Log-Nivel:    +1M COP en ingreso → +", round(b1[2] * 100, 5),
+    "% en gasto\n")
+cat("Nivel-Log:    +1% en ingreso     → +", round(b1[3] / 100, 2),
+    "M COP en gasto\n")
+cat("Log-Log:      +1% en ingreso     → +", round(b1[4], 3),
+    "% en gasto (elasticidad)\n")
+```
+
+## Truco del intercepto: centrar la variable
+
+Si $X = 0$ no tiene sentido económico (ningún municipio tiene ingreso cero), el intercepto no es interpretable. Centrando $X$, el intercepto pasa a ser el gasto esperado para un municipio **promedio**:
+
+```{r centrar}
+fin <- fin |>
+  mutate(ing_centrado = INGRESO_TRIBUTARIO - mean(INGRESO_TRIBUTARIO, na.rm = TRUE))
+
+m_centrado <- lm(GASTO_FUNCIONAMIENTO ~ ing_centrado, data = fin)
+tidy(m_centrado)
+```
+
+> Noten que $\hat\beta_1$ **no cambia** al centrar. Solo cambia el intercepto. ¿Cómo cambia la interpretación?
+
+## Los cuatro modelos en un gráfico
+
+```{r plot-cuatro, fig.width=9, fig.height=7}
+p_nn <- ggplot(fin, aes(INGRESO_TRIBUTARIO, GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha=.15, size=.7, color="grey50") +
+  geom_smooth(method="lm", color="firebrick", se=FALSE) +
+  labs(title="Nivel–Nivel", x="Ingreso", y="Gasto") + theme_minimal()
+
+p_ln <- ggplot(fin, aes(INGRESO_TRIBUTARIO, log_gasto)) +
+  geom_point(alpha=.15, size=.7, color="grey50") +
+  geom_smooth(method="lm", color="firebrick", se=FALSE) +
+  labs(title="Log(Y)–Nivel", x="Ingreso", y="log(Gasto)") + theme_minimal()
+
+p_nl <- ggplot(fin, aes(log_ing, GASTO_FUNCIONAMIENTO)) +
+  geom_point(alpha=.15, size=.7, color="grey50") +
+  geom_smooth(method="lm", color="firebrick", se=FALSE) +
+  labs(title="Nivel–Log(X)", x="log(Ingreso)", y="Gasto") + theme_minimal()
+
+p_ll <- ggplot(fin, aes(log_ing, log_gasto)) +
+  geom_point(alpha=.15, size=.7, color="grey50") +
+  geom_smooth(method="lm", color="firebrick", se=FALSE) +
+  labs(title="Log–Log", x="log(Ingreso)", y="log(Gasto)") + theme_minimal()
+
+(p_nn | p_ln) / (p_nl | p_ll) +
+  plot_annotation(
+    title   = "",
+    caption = "Fuente: Finanzas territoriales municipales, 2015–2019."
+  )
+```
+
+------------------------------------------------------------------------
+
+# BLOQUE C: Los supuestos CLM: ¿qué significan visualmente?
+
+## S1- Linealidad en parámetros
+
+El modelo es $Y = \beta_0 + \beta_1 X + \varepsilon$. El supuesto **no** dice que la relación entre $Y$ y $X$ es una línea recta en los datos crudos — dice que el modelo es lineal **en los parámetros** $\beta$. Por eso podemos incluir $X^2$, $\ln X$, dummies, etc., y seguir usando OLS.
+
+**Lo que sí viola S1:** que $\beta$ aparezca dentro de una función no lineal, como $Y = e^{\beta X}$.
+
+```{r s1-linealidad, fig.width=11, fig.height=4}
+set.seed(42)
+n <- 300
+x <- runif(n, 1, 10)
+
+# ── CASO 1: modelo lineal en parámetros Y variables ─────────────────────────
+y_lin  <- 2 + 3 * x + rnorm(n, sd = 2)
+m_lin  <- lm(y_lin ~ x)
+
+p1 <- ggplot(data.frame(x, y = y_lin), aes(x, y)) +
+  geom_point(alpha = .35, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE, linewidth = 1) +
+  labs(
+    title    = "✔ Caso 1: lineal en parámetros y variables",
+    subtitle = "OLS recupera β₀ = 2, β₁ = 3 sin problema",
+    x = "X", y = "Y"
+  ) +
+  theme_minimal()
+
+p1
+
+# ── CASO 2: cuadrático en variables, LINEAL EN PARÁMETROS ───────────────────
+# Y = β₀ + β₁X + β₂X² + u  →  β₂ entra linealmente → OLS con X y X² funciona
+y_cuad  <- 2 + 3 * x - 0.4 * x^2 + rnorm(n, sd = 2)
+m_cuad_mal  <- lm(y_cuad ~ x)           # modelo equivocado (lineal simple)
+m_cuad_bien <- lm(y_cuad ~ x + I(x^2)) # modelo correcto  (cuadrático, sigue siendo OLS)
+
+
+p2 <- ggplot(data.frame(x, y = y_cuad), aes(x, y)) +
+  geom_point(alpha = .35, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick",
+              se = FALSE, linewidth = 1) +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2),
+              color = "forestgreen", se = FALSE, linewidth = 1, linetype = "dashed") +
+  labs(
+    title    = "✔ Caso 2: cuadrático en variables, lineal en parámetros",
+    subtitle = "Rojo = OLS con X  (equivocado) · Verde = OLS con X + X²  (correcto, sigue siendo OLS)",
+    x = "X", y = "Y"
+  ) +
+  theme_minimal()
+p2
+
+# ── CASO 3: NO lineal en parámetros ─────────────────────────────────────────
+# Modelo verdadero: Y = α · exp(β·X) + u   →  β está en el exponente
+# OLS no puede recuperar α y β directamente; necesitamos NLS (o máxima verosimilitud)
+alpha_v <- 5; beta_v <- 0.3
+y_nolin <- alpha_v * exp(beta_v * x) + rnorm(n, sd = 2)
+
+m_ols_nolin <- lm(y_nolin ~ x)         # OLS sobre Y (modelo equivocado)
+m_nls       <- nls(y_nolin ~ a * exp(b * x),
+                   start = list(a = 3, b = 0.2))  # Mínimos cuadrados no lineales
+
+
+# Curvas para el gráfico
+x_seq      <- seq(1, 10, length.out = 200)
+y_ols_pred <- predict(m_ols_nolin, newdata = data.frame(x = x_seq))
+y_nls_pred <- predict(m_nls,       newdata = data.frame(x = x_seq))
+y_true     <- alpha_v * exp(beta_v * x_seq)
+
+df_curvas <- data.frame(
+  x     = rep(x_seq, 3),
+  y     = c(y_ols_pred, y_nls_pred, y_true),
+  curva = rep(c("OLS ingenuo", "NLS (correcto)", "Verdadero"), each = 200)
+)
+
+p3 <- ggplot() +
+  geom_point(data = data.frame(x, y = y_nolin),
+             aes(x, y), alpha = .35, color = "steelblue") +
+  geom_line(data = df_curvas,
+            aes(x, y, color = curva, linetype = curva), linewidth = 1) +
+  scale_color_manual(values = c("OLS ingenuo"   = "firebrick",
+                                "NLS (correcto)" = "forestgreen",
+                                "Verdadero"      = "grey30")) +
+  scale_linetype_manual(values = c("OLS ingenuo"   = "solid",
+                                   "NLS (correcto)" = "dashed",
+                                   "Verdadero"      = "dotted")) +
+  labs(
+    title    = "✘ Caso 3: NO lineal en parámetros — Y = α·exp(β·X) + u",
+    subtitle = "OLS falla al recuperar α y β · NLS (mínimos cuadrados no lineales) los recupera",
+    x = "X", y = "Y",
+    color = NULL, linetype = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p3
+```
+
+> 
+
+## S2 — Muestreo aleatorio (i.i.d.)
+
+Este supuesto no tiene gráfico directo en los datos, pero sí tiene implicaciones prácticas:
+
+- Encuestas con diseños complejos (estratificación, conglomerados) requieren errores estándar especiales.
+- Datos de panel o series de tiempo violan i.i.d. porque hay dependencia temporal.
+
+## S3 — Variación en X
+
+OLS necesita que $X$ no sea constante. Si $X$ es la misma para todos, $\sum(x_i - \bar{x})^2 = 0$ y la fórmula explota (división por cero).
+
+```{r s3-variacion}
+# Sin variación: lm() falla
+x_cte <- rep(5, 100)
+y_cte <- 2 + 3 * x_cte + rnorm(100)
+
+tryCatch(
+  lm(y_cte ~ x_cte),
+  warning = function(w) cat("Advertencia:", conditionMessage(w), "\n")
+)
+```
+
+## S4 — Media condicional cero: $\mathbb{E}[\varepsilon \mid X] = 0$
+
+Este es el supuesto **más importante**: el error no puede estar correlacionado con $X$. Si lo está, el estimador es **sesgado**.
+
+```{r s4-mce, fig.width=10, fig.height=7}
+set.seed(123)
+n <- 400
+x <- rnorm(n, 5, 2)
+z <- 0.7 * x + rnorm(n, 0, 1)   # z correlacionada con x
+e <- rnorm(n, 0, 1)
+y <- 1 + 2 * x + 1.5 * z + e   # modelo verdadero: β₁ = 2
+
+# Modelo correcto (incluye z) y modelo con variable omitida
+m_bien <- lm(y ~ x + z)
+m_malo <- lm(y ~ x)
+
+beta1_verdadero <- 2
+beta1_bien      <- round(coef(m_bien)["x"], 3)
+beta1_malo      <- round(coef(m_malo)["x"], 3)
+
+
+d_s4 <- data.frame(
+  x        = x,
+  z        = z,
+  res_bien = residuals(m_bien),
+  res_malo = residuals(m_malo)
+)
+
+# ── Panel 1 (arriba): residuos vs X ─────────────────────────────────────────
+# Ambos modelos dan cor(x, e) = 0 exactamente — eso es álgebra de OLS,
+# no evidencia de que S4 se cumple
+p_res_x_bien <- ggplot(d_s4, aes(x, res_bien)) +
+  geom_point(alpha = .35, color = "steelblue", size = .9) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "lm", se = FALSE, color = "firebrick",
+              linewidth = .7, linetype = "dashed") +
+  annotate("text", x = 1, y = Inf,
+           label = paste0("β̂₁ = ", beta1_bien, "  ✔"),
+           hjust = 0, vjust = 1.6, color = "forestgreen", size = 3.5) +
+  labs(title = "✔ Modelo correcto (incluye z)",
+       subtitle = "Residuos vs X: sin patrón ",
+       x = "X", y = "Residuo") +
+  theme_minimal()
+
+p_res_x_malo <- ggplot(d_s4, aes(x, res_malo)) +
+  geom_point(alpha = .35, color = "steelblue", size = .9) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "lm", se = FALSE, color = "firebrick",
+              linewidth = .7, linetype = "dashed") +
+  annotate("text", x = 1, y = Inf,
+           label = paste0("β̂₁ = ", beta1_malo,
+                          "  ✘  sesgo = +",
+                          round(beta1_malo - beta1_verdadero, 2)),
+           hjust = 0, vjust = 1.6, color = "firebrick", size = 3.5) +
+  labs(title = "✘ Modelo con variable omitida",
+       subtitle = "Residuos vs X: también sin patrón",
+       x = "X", y = "Residuo") +
+  theme_minimal()
+
+# ── Panel 2 (abajo): residuos vs Z ──────────────────────────────────────────
+# El modelo malo sí tiene patrón en los residuos contra Z (la omitida)
+p_res_z_bien <- ggplot(d_s4, aes(z, res_bien)) +
+  geom_point(alpha = .35, color = "steelblue", size = .9) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "lm", se = FALSE, color = "forestgreen",
+              linewidth = 1) +
+  annotate("text", x = min(z) + .2, y = Inf,
+           label = paste0("cor(z, e) = ",
+                          round(cor(d_s4$z, d_s4$res_bien), 3)),
+           hjust = 0, vjust = 1.6, size = 3.5, color = "forestgreen") +
+  labs(title = "Residuos vs Z — modelo correcto",
+       subtitle = "Sin patrón: z ya está controlada",
+       x = "Z (variable incluida)", y = "Residuo") +
+  theme_minimal()
+
+p_res_z_malo <- ggplot(d_s4, aes(z, res_malo)) +
+  geom_point(alpha = .35, color = "steelblue", size = .9) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "lm", se = FALSE, color = "firebrick",
+              linewidth = 1) +
+  annotate("text", x = min(z) + .2, y = Inf,
+           label = paste0("cor(z, e) = ",
+                          round(cor(d_s4$z, d_s4$res_malo), 3),
+                          ""),
+           hjust = 0, vjust = 1.6, size = 3.5, color = "firebrick") +
+  labs(title = "Residuos vs Z — modelo con variable omitida",
+       subtitle = "Patrón positivo: z está 'escondida' en los residuos → S4 violado",
+       x = "Z (variable omitida)", y = "Residuo") +
+  theme_minimal()
+
+(p_res_x_bien | p_res_x_malo) /
+  (p_res_z_bien | p_res_z_malo) +
+  plot_annotation(
+    title   = "S4 — Media condicional cero: E[ε | X] = 0",
+  )
+
+```
+
+> **Diagnóstico:** grafiquen siempre los residuos contra $X$. Si ven una tendencia, hay evidencia de que S4 falla.
+
+## S5 — Homocedasticidad: $\text{Var}(\varepsilon \mid X) = \sigma^2$
+
+El error debe tener la misma varianza para todos los valores de $X$. Cuando eso no ocurre tenemos **heterocedasticidad**. El gráfico que quizás vieron en la magistral muestra distribuciones condicionales de $Y \mid X$: bajo homocedasticidad todas tienen el mismo ancho; bajo heterocedasticidad, el ancho crece con $X$. Aquí lo reproducimos con datos reales.
+
+```{r s5-homoced, fig.width=10, fig.height=8}
+set.seed(7)
+n  <- 600
+x  <- runif(n, 1, 10)
+
+# ── Generar los dos escenarios 
+y_homo <- 1 + 2 * x + rnorm(n, 0, 2)          # varianza constante
+y_hete <- 1 + 2 * x + rnorm(n, 0, 0.6 * x)    # varianza crece con X
+
+d_s5 <- data.frame(x, y_homo, y_hete,
+                   res_homo = residuals(lm(y_homo ~ x)),
+                   res_hete = residuals(lm(y_hete ~ x)))
+
+# ── Tres cortes de X para mostrar distribuciones condicionales ───────────────
+cortes_x <- c(2, 5, 8)
+
+# Distribuciones condicionales simuladas en esos tres puntos
+dist_cond <- do.call(rbind, lapply(cortes_x, function(xc) {
+  # Homoscedástico: siempre sd = 2
+  y_seq <- seq(xc * 2 - 8, xc * 2 + 8, length.out = 120)
+  data.frame(
+    xc      = xc,
+    y       = y_seq,
+    dens    = dnorm(y_seq, mean = 1 + 2 * xc, sd = 2),
+    caso    = "Homocedasticidad"
+  )
+}))
+
+dist_cond_h <- do.call(rbind, lapply(cortes_x, function(xc) {
+  sd_xc <- 0.6 * xc
+  y_seq <- seq(1 + 2*xc - 4*sd_xc, 1 + 2*xc + 4*sd_xc, length.out = 120)
+  data.frame(
+    xc      = xc,
+    y       = y_seq,
+    dens    = dnorm(y_seq, mean = 1 + 2 * xc, sd = sd_xc),
+    caso    = "Heterocedasticidad"
+  )
+}))
+
+# Escalar densidades para que sean visibles en el scatter (como "violas" verticales)
+escalar <- 1.2
+dist_cond$x_plot  <- dist_cond$xc  + dist_cond$dens  * escalar
+dist_cond_h$x_plot <- dist_cond_h$xc + dist_cond_h$dens * escalar
+
+# ── Panel 1: scatter + distribuciones condicionales ─────────────────────────
+p_scatter_homo <- ggplot() +
+  geom_point(data = data.frame(x, y_homo),
+             aes(x, y_homo), alpha = .25, color = "steelblue", size = .8) +
+  geom_abline(intercept = 1, slope = 2, color = "firebrick", linewidth = .9) +
+  geom_path(data = dist_cond,
+            aes(x = x_plot, y = y, group = factor(xc)),
+            color = "forestgreen", linewidth = 1) +
+  geom_segment(data = data.frame(xc = cortes_x),
+               aes(x = xc, xend = xc, y = -Inf, yend = Inf),
+               linetype = "dashed", color = "grey60") +
+  labs(title = "✔ Homocedasticidad",
+       subtitle = "Las distribuciones condicionales tienen el mismo ancho",
+       x = "X", y = "Y") +
+  theme_minimal()
+
+p_scatter_hete <- ggplot() +
+  geom_point(data = data.frame(x, y_hete),
+             aes(x, y_hete), alpha = .25, color = "steelblue", size = .8) +
+  geom_abline(intercept = 1, slope = 2, color = "firebrick", linewidth = .9) +
+  geom_path(data = dist_cond_h,
+            aes(x = x_plot, y = y, group = factor(xc)),
+            color = "darkorange", linewidth = 1) +
+  geom_segment(data = data.frame(xc = cortes_x),
+               aes(x = xc, xend = xc, y = -Inf, yend = Inf),
+               linetype = "dashed", color = "grey60") +
+  labs(title = "✘ Heterocedasticidad",
+       subtitle = "Las distribuciones condicionales se ensanchan con X",
+       x = "X", y = "Y") +
+  theme_minimal()
+
+# ── Panel 2: residuos vs X (el gráfico de diagnóstico clásico) ──────────────
+p_res_homo <- ggplot(d_s5, aes(x, res_homo)) +
+  geom_point(alpha = .35, color = "steelblue", size = .8) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "loess", se = FALSE, color = "orange",
+              linewidth = .8, linetype = "dashed") +
+  labs(title = "Residuos vs. X — homocedasticidad",
+       subtitle = "Nube uniforme: sin patrón en la varianza",
+       x = "X", y = "Residuo") +
+  theme_minimal()
+
+p_res_hete <- ggplot(d_s5, aes(x, res_hete)) +
+  geom_point(alpha = .35, color = "steelblue", size = .8) +
+  geom_hline(yintercept = 0, color = "firebrick") +
+  geom_smooth(method = "loess", se = FALSE, color = "orange",
+              linewidth = .8, linetype = "dashed") +
+  labs(title = "Residuos vs. X — heterocedasticidad",
+       subtitle = "Embudo: varianza crece con X → S5 violado",
+       x = "X", y = "Residuo") +
+  theme_minimal()
+
+(p_scatter_homo | p_scatter_hete) /
+(p_res_homo     | p_res_hete) +
+  plot_annotation(
+    title   = "S5 — Homocedasticidad vs. Heterocedasticidad",
+    caption = ""
+  )
+```
+
+> **Lo que muestra cada fila:**
+>
+> - *Fila superior:* los "violines" laterales en las líneas verticales punteadas son las distribuciones de $Y$ para ese valor de $X$. En homocedasticidad todos tienen el mismo ancho (verde). En heterocedasticidad el ancho crece (naranja)
+> - *Fila inferior:* el gráfico de residuos vs. $X$ es el diagnóstico práctico. El "embudo" hacia la derecha es la firma clásica de heterocedasticidad.
+>
+> La heterocedasticidad **no sesga** $\hat\beta$, pero **infla o deflacta los errores estándar** → las pruebas $t$ y $F$ dejan de ser válidas. La solución: **errores estándar robustos** (tema de las próximas semanas).
+
+## El $R^2$ no lo dice todo: el cuarteto de Anscombe
+
+Este es el ejemplo más famoso de la estadística aplicada. Cuatro conjuntos de datos con **el mismo** $R^2$, la misma pendiente y el mismo intercepto, pero relaciones completamente distintas.
+
+```{r anscombe, fig.width=9, fig.height=7}
+# R trae el cuarteto de Anscombe incorporado
+data("anscombe")
+
+# Pasar a formato largo
+ansc <- bind_rows(
+  tibble(set = "I",   x = anscombe$x1, y = anscombe$y1),
+  tibble(set = "II",  x = anscombe$x2, y = anscombe$y2),
+  tibble(set = "III", x = anscombe$x3, y = anscombe$y3),
+  tibble(set = "IV",  x = anscombe$x4, y = anscombe$y4)
+)
+
+# Estadísticas por grupo — todas casi iguales
+ansc |>
+  group_by(set) |>
+  summarise(
+    media_x  = round(mean(x), 2),
+    media_y  = round(mean(y), 2),
+    R2       = round(cor(x, y)^2, 3),
+    b0       = round(coef(lm(y ~ x))[1], 2),
+    b1       = round(coef(lm(y ~ x))[2], 2)
+  )
+```
+
+```{r anscombe-plot, fig.width=9, fig.height=7}
+ggplot(ansc, aes(x, y)) +
+  geom_point(size = 2.5, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  facet_wrap(~ set, nrow = 2) +
+  labs(
+    title    = "El cuarteto de Anscombe",
+    subtitle = "Mismo R², mismo b0 y b1,  relaciones completamente distintas",
+    caption  = ""
+  ) +
+  theme_minimal()
+```
+
+> - **I** — la única situación en que la regresión lineal es apropiada.
+> - **II** — relación cuadrática: se necesita $X^2$.
+> - **III** — un outlier infuential está jalando toda la pendiente.
+> - **IV** — la pendiente la genera **un solo punto** outlier.
+
+## Una misma pendiente, distintas dispersiones → mismo $\hat\beta_1$, distinto $\text{se}(\hat\beta_1)$
+
+```{r misma-pendiente, fig.width=9, fig.height=4}
+set.seed(99)
+n <- 200
+x2 <- rnorm(n, 5, 2)
+
+d_disp <- tibble(
+  x = x2,
+  y_baja = 1 + 2 * x2 + rnorm(n, 0, 1),    # poca dispersión
+  y_alta = 1 + 2 * x2 + rnorm(n, 0, 6)     # mucha dispersión
+)
+
+m_baja <- lm(y_baja ~ x, data = d_disp)
+m_alta <- lm(y_alta ~ x, data = d_disp)
+
+
+p_bd <- ggplot(d_disp, aes(x, y_baja)) +
+  geom_point(alpha = .5, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Poca dispersión → se(b1) pequeño",
+       subtitle = paste0("b1 = ", round(coef(m_baja)["x"],3)),
+       x = "X", y = "Y") + theme_minimal()
+
+p_ad <- ggplot(d_disp, aes(x, y_alta)) +
+  geom_point(alpha = .5, color = "steelblue") +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE) +
+  labs(title = "Mucha dispersión → se(b1) grande",
+       subtitle = paste0("b1 = ", round(coef(m_alta)["x"],3)),
+       x = "X", y = "Y") + theme_minimal()
+
+p_bd | p_ad
+```
+
+> La pendiente puede ser prácticamente la misma, pero el **error estándar** cambia mucho. Más dispersión en los errores → menos precisión en la estimación → intervalos de confianza más anchos.
+
+```         
+```
+
+------------------------------------------------------------------------
+
+# BLOQUE D: Simulación Monte Carlo: insesgamiento y consistencia
+
+Ya sabemos que bajo S1–S4:
+
+$$\mathbb{E}[\hat\beta_1] = \beta_1 \quad \text{(insesgamiento)}$$
+
+y que bajo S1–S3 más muestras grandes:
+
+$$\hat\beta_1 \xrightarrow{p} \beta_1 \quad \text{(consistencia)}$$
+
+Las simulaciones nos permiten **construir** estas propiedades desde cero, paso a paso, exactamente como se haría en un proyecto real.
+
+## Paso 1 — Fijar el modelo poblacional
+
+En una simulación nosotros somos "Dios": conocemos los parámetros verdaderos porque los fijamos. Eso es lo que nunca ocurre con datos reales.
+
+```{r mc-parametros}
+set.seed(2024)
+
+# Parámetros poblacionales 
+BETA0 <- 2
+BETA1 <- 3     # ← este es el que queremos recuperar con OLS
+SIGMA <- 4     # desviación estándar del error
+N_POB <- 1e5   # tamaño de la "población" de la que muestreamos (100k)
+```
+
+## Paso 2 — Construir la base de datos de UNA muestra
+
+Vamos despacio: generemos **una sola muestra** de $n = 100$ y mostremos cada columna que se va construyendo.
+
+```{r mc-una-muestra}
+n_muestra <- 100
+
+# Columna 1: variable independiente X
+x_obs <- rnorm(n_muestra, mean = 5, sd = 2)
+
+# Columna 2: error (NO observable en datos reales)
+u_obs <- rnorm(n_muestra, mean = 0, sd = SIGMA)
+
+# Columna 3: Y según el modelo poblacional  Y = β0 + β1*X + u
+y_obs <- BETA0 + BETA1 * x_obs + u_obs
+
+
+# Armar el data frame paso a paso
+df_sim <- data.frame(
+  obs = 1:n_muestra,
+  X   = round(x_obs, 3),
+  u   = round(u_obs, 3),   # solo lo vemos porque simulamos,  en datos reales NO existe
+  Y   = round(y_obs, 3)
+)
+
+head(df_sim, 10)
+```
+
+```{r mc-ajustar}
+# Estimar OLS en esta muestra
+modelo_sim <- lm(Y ~ X, data = df_sim)
+
+# Agregar columnas de predichos y residuos al data frame
+df_sim$Y_hat <- round(fitted(modelo_sim),     3)   # ŷ = β̂₀ + β̂₁·X
+df_sim$e     <- round(residuals(modelo_sim),  3)   # e = Y − ŷ  (residuo, NO el error u)
+
+# Ver las primeras filas con todas las columnas
+head(df_sim, 10)
+
+# Verificar las propiedades algebraicas de OLS
+cat("Suma de residuos        (debe ser ≈ 0): ", round(sum(df_sim$e), 10), "\n")
+cat("Cov(X, e)               (debe ser ≈ 0): ", round(cov(df_sim$X, df_sim$e), 10), "\n")
+cat("β̂₁ estimado:                            ", round(coef(modelo_sim)["X"], 4), "\n")
+cat("β₁ verdadero:                            ", BETA1, "\n")
+```
+
+> **Distinción importante:** `u` es el **error poblacional** (no observable). `e` es el **residuo de la estimación** (observable). OLS minimiza $\sum e_i^2$, no $\sum u_i^2$.
+
+```{r mc-scatter-una}
+ggplot(df_sim, aes(X, Y)) +
+  geom_point(color = "steelblue", alpha = .6) +
+  geom_abline(intercept = BETA0, slope = BETA1,
+              color = "grey50", linewidth = 1, linetype = "dashed") +
+  geom_smooth(method = "lm", color = "firebrick", se = FALSE, linewidth = 1) +
+  annotate("text", x = 2, y = max(df_sim$Y) * .95,
+           label = paste0("Recta verdadera (gris)\nRecta OLS (roja)\nβ̂₁ = ",
+                          round(coef(modelo_sim)["X"], 3)),
+           hjust = 0, size = 3.5) +
+  labs(title = "Una muestra: recta verdadera vs. recta OLS estimada",
+       x = "X", y = "Y") +
+  theme_minimal()
+```
+
+## Paso 3 — Repetir 2 000 veces (el loop de Monte Carlo)
+
+Ahora repetimos la misma operación muchas veces y guardamos el $\hat\beta_1$ de cada muestra. La función lo encapsula:
+
+```{r mc-funcion}
+# Función que genera UNA muestra y devuelve b1
+una_simulacion <- function(n, b0 = BETA0, b1 = BETA1, sigma = SIGMA) {
+  x <- rnorm(n, mean = 5, sd = 2)
+  u <- rnorm(n, mean = 0, sd = sigma)
+  y <- b0 + b1 * x + u
+  as.numeric(coef(lm(y ~ x))["x"])  # devuelve solo b1 como escalar
+}
+
+# Probar que funciona
+una_simulacion(100)
+```
+
+```{r mc-replicate}
+# 2 000 repeticiones, n = 100
+B <- 2000
+b1_simulados <- replicate(B, una_simulacion(n = 100))
+
+# Tabla resumen de las 2 000 estimaciones
+cat("── Resumen de las", B, "estimaciones de β₁ ──\n")
+cat("Media de b̂₁:         ", round(mean(b1_simulados), 5), "\n")
+cat("β₁ verdadero:         ", BETA1, "\n")
+cat("Sesgo estimado:        ", round(mean(b1_simulados) - BETA1, 5), "\n")
+cat("Desv. estándar de b̂₁:", round(sd(b1_simulados), 5), "\n")
+cat("Mín / Máx:            ", round(min(b1_simulados), 3),
+    "/", round(max(b1_simulados), 3), "\n")
+```
+
+```{r mc-hist-insesgado}
+ggplot(data.frame(b1 = b1_simulados), aes(x = b1)) +
+  geom_histogram(aes(y = after_stat(density)),
+                 bins = 55, fill = "steelblue", color = "white", alpha = .85) +
+  geom_density(color = "navy", linewidth = .9) +
+  geom_vline(xintercept = BETA1,
+             color = "firebrick", linewidth = 1.3, linetype = "dashed") +
+  annotate("text", x = BETA1 + .04, y = Inf,
+           label = paste0("β₁ verdadero = ", BETA1),
+           hjust = 0, vjust = 1.8, color = "firebrick", size = 3.5) +
+  labs(
+    title    = paste0("Distribución de β̂₁ en ", B, " muestras (n = 100)"),
+    subtitle = "La distribución se centra en el valor verdadero → insesgamiento",
+    x        = expression(hat(beta)[1]),
+    y        = "Densidad"
+  ) +
+  theme_minimal()
+```
+
+## Paso 4 — Convergencia acumulada
+
+Este gráfico muestra cómo el **promedio acumulado** de $\hat\beta_1$ converge al valor verdadero a medida que agregamos más simulaciones. Cada línea negra es una trayectoria individual; la roja es el promedio de todas.
+
+```{r mc-convergencia, fig.width=9, fig.height=5.5}
+set.seed(2024)
+N_SIM  <- 1500   # número de simulaciones por trayectoria
+N_TRAY <- 20     # número de trayectorias
+
+# Construir N_TRAY trayectorias de promedios acumulados
+trayectorias <- lapply(seq_len(N_TRAY), function(tray) {
+  b1s <- replicate(N_SIM, una_simulacion(n = 100))
+  data.frame(
+    trayectoria = tray,
+    iter        = seq_len(N_SIM),
+    b1          = b1s,
+    prom_acum   = cumsum(b1s) / seq_len(N_SIM)   # promedio acumulado
+  )
+})
+
+df_conv <- do.call(rbind, trayectorias)
+
+# Promedio de los promedios acumulados (línea roja)
+prom_global <- aggregate(prom_acum ~ iter, data = df_conv, FUN = mean)
+
+ggplot() +
+  geom_line(data = df_conv,
+            aes(x = iter, y = prom_acum, group = trayectoria),
+            color = "grey30", alpha = .5, linewidth = .4) +
+  geom_line(data = prom_global,
+            aes(x = iter, y = prom_acum),
+            color = "firebrick", linewidth = 1.2) +
+  geom_hline(yintercept = BETA1,
+             color = "black", linetype = "dashed", linewidth = .8) +
+  annotate("text", x = 1400, y = BETA1 - .08,
+           label = paste0("β₁ = ", BETA1), color = "black", size = 3.5) +
+  annotate("text", x = 1200, y = min(prom_global$prom_acum) - .04,
+           label = "promedio de las\n20 simulaciones",
+           color = "firebrick", size = 3.2, hjust = 0) +
+  labs(
+    title    = "Convergencia del promedio acumulado de β̂₁",
+    subtitle = "20 trayectorias (negro) y su promedio (rojo) — a más iteraciones, converge a β₁ = 3",
+    x        = "Número de simulaciones acumuladas",
+    y        = expression("Promedio acumulado de " ~ hat(beta)[1])
+  ) +
+  theme_minimal()
+```
+
+> **Qué muestra este gráfico:** cada línea negra es una secuencia de promedios acumulados de $\hat\beta_1$. Al inicio hay mucha variabilidad (pocas simulaciones), pero conforme sumamos más, todas convergen hacia el valor verdadero. La línea roja (promedio de los 20) es aún más estable. Esto es la **Ley de Grandes Números** en acción.
+
+## Paso 5 — Consistencia: más datos → estimador más concentrado
+
+La consistencia dice que con $n$ **grande**, el estimador se concentra cada vez más alrededor de $\beta_1$. Lo mostramos variando el tamaño de muestra.
+
+```{r mc-consistencia, fig.height=5}
+# Tamaños de muestra a comparar
+tamanos_n  <- c(50, 200, 1000, 5000)
+etiquetas  <- paste0("n = ", tamanos_n)
+
+# Simulaciones: separamos el tamaño numérico de la etiqueta
+# para evitar que R pase el índice del factor a la función
+resultados_n <- do.call(rbind, lapply(seq_along(tamanos_n), function(i) {
+  n_i   <- tamanos_n[i]      # valor numérico (50, 200, ...)
+  etiq  <- etiquetas[i]      # etiqueta de texto ("n = 50", ...)
+  b1s   <- replicate(1000, una_simulacion(n = n_i))  # usar n_i, no i
+  data.frame(
+    n_label = factor(etiq, levels = etiquetas),
+    b1      = b1s
+  )
+}))
+
+ggplot(resultados_n, aes(x = b1, color = n_label, fill = n_label)) +
+  geom_density(alpha = .25, linewidth = .9) +
+  geom_vline(xintercept = BETA1,
+             color = "firebrick", linewidth = 1.1, linetype = "dashed") +
+  annotate("text", x = BETA1 + .02, y = Inf,
+           label = paste0("β₁ = ", BETA1),
+           hjust = 0, vjust = 1.8, color = "firebrick", size = 3.5) +
+  labs(
+    title    = expression("Consistencia: a mayor n, la distribución se concentra en " ~ beta[1] == 3),
+    subtitle = "Cada curva = 1 000 simulaciones con distinto tamaño de muestra",
+    x        = expression(hat(beta)[1]),
+    y        = "Densidad",
+    color    = "Tamaño de muestra",
+    fill     = "Tamaño de muestra"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "right")
+```
+
+```{r mc-tabla-consistencia}
+# Tabla numérica del efecto del tamaño de muestra
+agg <- aggregate(b1 ~ n_label, data = resultados_n,
+                 FUN = function(v) c(media = mean(v), sd = sd(v)))
+data.frame(
+  n          = etiquetas,
+  media_b1   = round(agg$b1[, "media"], 4),
+  sd_b1      = round(agg$b1[, "sd"],    4),
+  sesgo      = round(agg$b1[, "media"] - BETA1, 4)
+)
+```
+
+> Con $n = 50$ la desviación estándar de $\hat\beta_1$ es grande — el estimador "salta" mucho entre muestras. Con $n = 5000$ prácticamente colapsa en el valor verdadero. Eso es **consistencia**: $\hat\beta_1 \xrightarrow{p} \beta_1$.
+
+## Paso 6 — ¿Qué pasa cuando se viola S4? (variable omitida)
+
+Cuando omitimos una variable $z$ que está correlacionada con $X$, el error del modelo ya no es independiente de $X$ → S4 falla → $\hat\beta_1$ es **sesgado**.
+
+```{r mc-sesgo}
+# Modelo verdadero: Y = 2 + 3*X + 2*Z + u
+# Estimamos solo Y ~ X  (omitimos Z)
+simular_omitida <- function(n) {
+  x <- rnorm(n, 5, 2)
+  z <- 0.8 * x + rnorm(n, 0, 1)   # Z correlacionada con X (rho ≈ 0.85)
+  u <- rnorm(n, 0, 2)
+  y <- 2 + 3 * x + 2 * z + u      # modelo verdadero incluye Z
+  as.numeric(coef(lm(y ~ x))["x"])  # estimamos SIN Z
+}
+
+b1_omitida  <- replicate(2000, simular_omitida(200))
+b1_correcta <- replicate(2000, una_simulacion(200))
+
+df_sesgo <- rbind(
+  data.frame(b1 = b1_correcta, modelo = "Modelo correcto"),
+  data.frame(b1 = b1_omitida,  modelo = "Variable omitida (sesgado)")
+)
+
+# Sesgo teórico: b1_sesgado ≈ 3 + 2*(Cov(X,Z)/Var(X)) = 3 + 2*0.8*(4/(4+1)) = ...
+# Con Z = 0.8*X + v, Cov(X,Z) = 0.8*Var(X), así que sesgo ≈ 2*0.8 = 1.6
+cat("β̂₁ promedio — modelo correcto: ", round(mean(b1_correcta), 3), "\n")
+cat("β̂₁ promedio — con omisión:     ", round(mean(b1_omitida), 3), "\n")
+cat("Sesgo estimado:                  ", round(mean(b1_omitida) - BETA1, 3), "\n")
+cat("Sesgo teórico aprox (β₂·δ₁):    ", round(2 * 0.8, 3), "\n")
+```
+
+```{r mc-plot-sesgo}
+ggplot(df_sesgo, aes(x = b1, fill = modelo, color = modelo)) +
+  geom_density(alpha = .3, linewidth = .9) +
+  geom_vline(xintercept = BETA1,
+             color = "black", linetype = "dashed", linewidth = 1) +
+  annotate("text", x = BETA1 + .08, y = Inf,
+           label = paste0("β₁ verdadero = ", BETA1),
+           hjust = 0, vjust = 1.8, color = "black", size = 3.5) +
+  scale_fill_manual(values  = c("Modelo correcto" = "steelblue",
+                                "Variable omitida (sesgado)" = "firebrick")) +
+  scale_color_manual(values = c("Modelo correcto" = "steelblue",
+                                "Variable omitida (sesgado)" = "firebrick")) +
+  labs(
+    title    = "Sesgo de variable omitida",
+    subtitle = "Al omitir Z (correlacionada con X), β̂₁ se desplaza hacia la derecha",
+    x        = expression(hat(beta)[1]),
+    y        = "Densidad",
+    fill = NULL, color = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+> **La fórmula del sesgo:** si el modelo verdadero es $Y = \beta_0 + \beta_1 X + \beta_2 Z + u$ pero estimamos $Y = \beta_0 + \beta_1 X + e$ (omitiendo $Z$), el sesgo de $\hat\beta_1$ es:
+>
+> $$\text{Sesgo}(\hat\beta_1) = \beta_2 \cdot \delta_1, \qquad \delta_1 = \frac{\text{Cov}(X,Z)}{\text{Var}(X)}$$
+>
+> En nuestro caso: $\beta_2 = 2$, $\delta_1 \approx 0.8$ → sesgo $\approx 1.6$, lo que explica que la distribución se centre alrededor de $3 + 1.6 = 4.6$.
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+|     |
+|-----|
+|     |
+
+------------------------------------------------------------------------
+
+*Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 \| Universidad de los Andes \| 2026-19*
