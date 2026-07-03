@@ -87,7 +87,7 @@ glimpse(fin)
 Las variables que vamos a usar hoy:
 
 | Variable | Descripción | Unidad |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | `INGRESO_TRIBUTARIO` | Ingresos tributarios del municipio | Millones COP |
 | `GASTO_FUNCIONAMIENTO` | Gasto de funcionamiento del municipio | Millones COP |
 | `TRANSFERENCIAS_SGP` | Transferencias del Sistema General de Participaciones | Millones COP |
@@ -189,7 +189,7 @@ summary(m1)
 La tabla tiene cuatro columnas para cada coeficiente:
 
 | Columna      | ¿Qué es?                                                    |
-|------------------------------------|------------------------------------|
+|--------------|-------------------------------------------------------------|
 | `Estimate`   | $\hat{\beta}$ — el coeficiente estimado                     |
 | `Std. Error` | $\text{se}(\hat{\beta})$ — el error estándar                |
 | `t value`    | $\hat{\beta} / \text{se}(\hat{\beta})$ — el estadístico $t$ |
@@ -208,7 +208,7 @@ interpretación cambia según las unidades de $X$ y $Y$.
 ## Resumen en una tabla
 
 | Modelo | Ecuación | Interpretación de $\hat\beta_1$ |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | **nivel–nivel** | $Y = \beta_0 + \beta_1 X$ | $\Delta Y = \hat\beta_1 \cdot \Delta X$ (en unidades) |
 | **log–nivel** | $\ln Y = \beta_0 + \beta_1 X$ | $\%\Delta Y \approx 100\,\hat\beta_1 \cdot \Delta X$ |
 | **nivel–log** | $Y = \beta_0 + \beta_1 \ln X$ | $\Delta Y \approx (\hat\beta_1/100) \cdot \%\Delta X$ |
@@ -468,7 +468,7 @@ library(patchwork)
 # Tabla resumen de interpretaciones
 
 | Modelo | $\hat\beta_1$ | Pregunta que responde |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | Nivel–nivel | +0.29 | ¿En cuántos *millones COP* cambia el gasto si el ingreso sube *1 millón*? |
 | Log–nivel | +0.000012 | ¿En qué *%* cambia el gasto si el ingreso sube *1 millón*? |
 | Nivel–log | +177 | ¿En cuántos *millones COP* cambia el gasto si el ingreso sube *1%*? |

@@ -1,0 +1,34 @@
+\begin{table}
+\centering
+\begin{talltblr}[         %% tabularray outer open
+entry=none,label=none,
+note{}={+ p \num{< 0.1}, * p \num{< 0.05}, ** p \num{< 0.01}, *** p \num{< 0.001}},
+]                     %% tabularray outer close
+{                     %% tabularray inner open
+colspec={Q[]Q[]Q[]Q[]},
+hline{2}={1-4}{solid, black, 0.05em},
+hline{10}={1-4}{solid, black, 0.05em},
+hline{1}={1-4}{solid, black, 0.1em},
+hline{18}={1-4}{solid, black, 0.1em},
+column{2-4}={}{halign=c},
+column{1}={}{halign=l},
+}                     %% tabularray inner close
+& (1) Simple & (2) + SGP & (3) + Pob. \\
+(Intercept) & \num{3.248}*** & \num{2.440}*** & \num{2.448}*** \\
+& (\num{0.037}) & (\num{0.062}) & (\num{0.063}) \\
+log\_ing & \num{0.588}*** & \num{0.535}*** & \num{0.532}*** \\
+& (\num{0.005}) & (\num{0.006}) & (\num{0.006}) \\
+log\_sgp &  & \num{0.131}*** & \num{0.112}*** \\
+&  & (\num{0.008}) & (\num{0.019}) \\
+log\_pob &  &  & \num{0.020} \\
+&  &  & (\num{0.018}) \\
+Num.Obs. & \num{5498} & \num{5498} & \num{5498} \\
+R2 & \num{0.743} & \num{0.755} & \num{0.755} \\
+R2 Adj. & \num{0.743} & \num{0.754} & \num{0.755} \\
+AIC & \num{8078.6} & \num{7831.5} & \num{7832.3} \\
+BIC & \num{8098.4} & \num{7858.0} & \num{7865.4} \\
+Log.Lik. & \num{-4036.282} & \num{-3911.762} & \num{-3911.156} \\
+F & \num{15906.937} & \num{8447.815} & \num{5632.496} \\
+RMSE & \num{0.50} & \num{0.49} & \num{0.49} \\
+\end{talltblr}
+\end{table}
