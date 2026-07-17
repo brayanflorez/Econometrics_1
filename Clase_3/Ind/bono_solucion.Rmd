@@ -1,0 +1,329 @@
+---
+title: "BONO — OLS con matrices (SOLUCIÓN)"
+subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
+author: "Brayan David Flórez | Profesor complementario"
+date: "2026-19"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    number_sections: true
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+------------------------------------------------------------------------
+
+> **Universidad de los Andes** \| Facultad de Economía\
+> Clase complementaria — Viernes 4 de julio\
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
+
+------------------------------------------------------------------------
+
+# Los datos: `swiss`
+
+La base `swiss` contiene indicadores socioeconómicos de **47 cantones
+suizos** en 1888. Viene incorporada en R — no se necesita ningún archivo
+externo.
+
+```{r datos}
+data(swiss)
+head(swiss)
+```
+
+**Modelo:**
+
+$$\text{Fertility}_i = \beta_0 + \beta_1\,\text{Agriculture}_i +
+\beta_2\,\text{Education}_i + \beta_3\,\text{Catholic}_i +
+\beta_4\,\text{Infant.Mortality}_i + \varepsilon_i$$
+
+------------------------------------------------------------------------
+
+# Paso 1 — Construir $Y$ y $X$
+
+```{r paso1-matrices}
+# Y: vector columna de la variable dependiente (47 × 1)
+Y <- as.matrix(swiss$Fertility)
+
+# X: matriz de diseño (47 × 5)
+# Primera columna = vector de unos para el intercepto β₀
+X <- cbind(1,
+           swiss$Agriculture,
+           swiss$Education,
+           swiss$Catholic,
+           swiss$Infant.Mortality)
+
+colnames(X) <- c("Intercepto", "Agriculture", "Education",
+                 "Catholic", "Infant.Mortality")
+
+cat("Dimensiones de Y:", dim(Y), "\n")
+cat("Dimensiones de X:", dim(X), "\n")
+head(X)
+```
+
+> **Nota:** la columna de unos es lo que permite que la fórmula
+> $\hat\beta = (X'X)^{-1}X'Y$ incluya el intercepto automáticamente. Sin
+> ella estaríamos forzando $\beta_0 = 0$.
+
+------------------------------------------------------------------------
+
+# Paso 2 — Estimar $\hat\beta = (X'X)^{-1}X'Y$
+
+```{r paso2-beta}
+# X'X  (5 × 5)
+XtX <- t(X) %*% X
+
+# X'Y  (5 × 1)
+XtY <- t(X) %*% Y
+
+# beta_hat = (X'X)^{-1} X'Y
+beta_h <- solve(XtX) %*% XtY
+
+rownames(beta_h) <- colnames(X)
+cat("Coeficientes estimados:\n")
+print(round(beta_h, 4))
+```
+
+**Lectura de coeficientes:**
+
+| Coeficiente | Valor | Interpretación |
+|----|----|----|
+| $\hat\beta_0$ (Intercepto) | 62.10 | Fertilidad esperada cuando todos los regresores son 0 (no tiene sentido económico directo) |
+| $\hat\beta_1$ (Agriculture) | −0.15 | Cada punto porcentual adicional de hombres en agricultura se asocia con −0.15 unidades de fertilidad, ceteris paribus |
+| $\hat\beta_2$ (Education) | −0.98 | Cada punto porcentual adicional de educación se asocia con −0.98 unidades de fertilidad — el efecto más grande |
+| $\hat\beta_3$ (Catholic) | +0.12 | Cantones con mayor proporción católica tienden a tener mayor fertilidad |
+| $\hat\beta_4$ (Infant.Mortality) | +1.08 | Mayor mortalidad infantil se asocia con mayor fertilidad — posiblemente por "reposición" de hijos |
+
+------------------------------------------------------------------------
+
+# Paso 3 — Residuos y $\hat\sigma^2$
+
+```{r paso3-sigma}
+n <- nrow(X)   # 47 observaciones
+K <- ncol(X)   # 5 parámetros (incluye intercepto)
+
+# Residuos: e = Y - X·β̂  (47 × 1)
+e_h <- Y - X %*% beta_h
+
+# SCR = e'e  (suma de cuadrados de residuos)
+SCR <- as.numeric(t(e_h) %*% e_h)
+. -/.
+...2
+
+
+# Varianza estimada del error: σ̂² = SCR / (n - K)
+sigma2 <- SCR / (n - K)
+
+cat("n =", n, "| K =", K, "| grados de libertad =", n - K, "\n")
+cat("SCR    =", round(SCR,    4), "\n")
+cat("σ̂²    =", round(sigma2, 4), "\n")
+cat("σ̂     =", round(sqrt(sigma2), 4), "\n")
+```
+
+> Los **grados de libertad** son $n - K = 47 - 5 = 42$. Dividimos por
+> $n - K$ (no por $n$) para obtener un estimador **insesgado** de
+> $\sigma^2$. Esas son las dos restricciones que impone OLS (una por
+> cada parámetro estimado, incluido el intercepto).
+
+------------------------------------------------------------------------
+
+# Paso 4 — $\text{Var}(\hat\beta)$ y errores estándar
+
+$$\text{Var}(\hat\beta \mid X) = \hat\sigma^2\,(X'X)^{-1}$$
+
+```{r paso4-var}
+# Matriz de varianzas-covarianzas (5 × 5)
+solve <- solve(XtX)
+
+Var_beta <- sigma2 * solve(XtX)
+
+# Errores estándar = raíz cuadrada de la diagonal
+se_beta <- sqrt(diag(Var_beta))
+
+cat("Errores estándar:\n")
+print(round(se_beta, 4))
+```
+
+> La **diagonal** de $\text{Var}(\hat\beta)$ contiene las varianzas de
+> cada $\hat\beta_j$. Los **elementos fuera de la diagonal** son
+> covarianzas entre estimadores — también importan para pruebas
+> conjuntas (más en inferencia estadística).
+
+------------------------------------------------------------------------
+
+# Paso 5 — Estadístico $t$ y p-valor
+
+$$t_j = \frac{\hat\beta_j}{\text{se}(\hat\beta_j)} \sim t_{42} \quad
+\text{bajo } H_0: \beta_j = 0$$
+
+```{r paso5-t}
+gl <- n - K   # 42 grados de libertad
+
+# Estadístico t para cada coeficiente
+t_stat <- beta_h[, 1] / se_beta
+
+# P-valor de dos colas: p = 2·P(T > |t|)
+p_val <- 2 * pt(-abs(t_stat), df = gl)
+
+# Tabla resumen
+resultado <- data.frame(
+  Estimado  = round(beta_h[, 1], 4),
+  Error_std = round(se_beta,     4),
+  t         = round(t_stat,      3),
+  p_valor   = round(p_val,       4),
+  Signif    = ifelse(p_val < .001, "***",
+              ifelse(p_val < .01,  "**",
+              ifelse(p_val < .05,  "*",
+              ifelse(p_val < .1,   ".", ""))))
+)
+print(resultado)
+```
+
+**Interpretación de la prueba** $t$ para cada coeficiente (al 5%):
+
+- **Intercepto** ($t = 6.47$, $p < 0.001$): significativo, pero sin
+  interpretación económica directa.
+- **Agriculture** ($t = -2.27$, $p = 0.029$): significativo. Evidencia
+  de que la proporción de hombres en agricultura tiene un efecto
+  negativo sobre la fertilidad.
+- **Education** ($t = -6.62$, $p < 0.001$): el más significativo. Mayor
+  educación se asocia fuertemente con menor fertilidad.
+- **Catholic** ($t = 4.31$, $p < 0.001$): significativo. Los cantones
+  con mayor proporción católica tienen mayor fertilidad.
+- **Infant.Mortality** ($t = 2.82$, $p = 0.007$): significativo.
+  Coherente con la hipótesis de "reposición demográfica".
+
+------------------------------------------------------------------------
+
+# Paso 6 — Prueba $F$ de significancia conjunta
+
+$$H_0: \beta_1 = \beta_2 = \beta_3 = \beta_4 = 0 \qquad
+H_1: \text{al menos un } \beta_j \neq 0$$
+
+```{r paso6-f}
+k <- K - 1   # 4 regresores (sin el intercepto)
+
+# Suma total de cuadrados: SCT = Σ(Y - Ȳ)²
+SCT <- sum((Y - mean(Y))^2)
+
+# R² = 1 - SCR/SCT
+R2 <- 1 - SCR / SCT
+
+# Estadístico F
+F_stat <- (R2 / k) / ((1 - R2) / (n - K))
+
+# P-valor (cola derecha de la distribución F)
+p_F <- pf(F_stat, df1 = k, df2 = n - K, lower.tail = FALSE)
+
+cat("R²        =", round(R2,     4), "\n")
+cat("F         =", round(F_stat, 3), "\n")
+cat("p-valor F =", formatC(p_F, format = "e", digits = 3), "\n")
+```
+
+> Con $F = 24.42$ y un p-valor de $1.72 \times 10^{-10}$, se rechaza
+> $H_0$ contundentemente. El conjunto de regresores explica una fracción
+> significativa de la variación en la tasa de fertilidad.
+>
+> El $R^2 = 0.699$ indica que el modelo explica el **69.9%** de la
+> varianza de la fertilidad con solo 4 regresores.
+
+------------------------------------------------------------------------
+
+# Paso 7 — Intervalo de confianza al 95%
+
+$$\text{IC}_{95\%}: \quad \hat\beta_j \pm t_{0.975,\,42} \cdot \text{se}(\hat\beta_j)$$
+
+```{r paso7-ic}
+# Valor crítico t al 5% bilateral con 42 grados de libertad
+c_critico <- qt(0.975, df = gl)
+cat("Valor crítico t₀.₉₇₅ (g.l. = 42):", round(c_critico, 4), "\n\n")
+
+IC <- data.frame(
+  Estimado = round(beta_h[, 1], 4),
+  LI_95    = round(beta_h[, 1] - c_critico * se_beta, 4),
+  LS_95    = round(beta_h[, 1] + c_critico * se_beta, 4)
+)
+print(IC)
+```
+
+> **Lectura del IC de Education:** con 95% de confianza, un punto
+> porcentual adicional de educación se asocia con una reducción de entre
+> **0.68 y 1.28** unidades en la tasa de fertilidad, manteniendo los
+> demás factores constantes. El intervalo no incluye el 0, consistente
+> con el rechazo de $H_0$ al 5%.
+
+------------------------------------------------------------------------
+
+# Paso 8 — Verificación con `lm()`
+
+```{r paso8-verificar}
+m_verif <- lm(Fertility ~ Agriculture + Education + Catholic + Infant.Mortality,
+              data = swiss)
+summary(m_verif)
+```
+
+```{r paso8-ic}
+confint(m_verif)
+```
+
+**Comparación:**
+
+```{r paso8-comparacion}
+# Coeficientes: matriz vs lm
+cat("── Coeficientes ──\n")
+comp_beta <- data.frame(
+  Matricial = round(beta_h[, 1], 4),
+  lm        = round(coef(m_verif), 4),
+  Diferencia = round(beta_h[, 1] - coef(m_verif), 10)
+)
+print(comp_beta)
+
+# R² y F
+cat("\nR² matricial:", round(R2, 6),
+    "| R² lm:", round(summary(m_verif)$r.squared, 6), "\n")
+cat("F  matricial:", round(F_stat, 4),
+    "| F  lm:", round(summary(m_verif)$fstatistic[1], 4), "\n")
+```
+
+> La diferencia es exactamente **0** (o errores de punto flotante del
+> orden de $10^{-10}$): la fórmula matricial y `lm()` son la misma
+> operación. `lm()` no hace magia — implementa exactamente
+> $(X'X)^{-1}X'Y$.
+
+------------------------------------------------------------------------
+
+# Resumen de las fórmulas
+
+| Objeto | Fórmula | Código R |
+|----|----|----|
+| $\hat\beta$ | $(X'X)^{-1}X'Y$ | `solve(t(X)%*%X) %*% t(X)%*%Y` |
+| $e$ | $Y - X\hat\beta$ | `Y - X %*% beta_h` |
+| $\text{SCR}$ | $e'e$ | `t(e_h) %*% e_h` |
+| $\hat\sigma^2$ | $\text{SCR}/(n-K)$ | `SCR / (n - K)` |
+| $\text{Var}(\hat\beta)$ | $\hat\sigma^2(X'X)^{-1}$ | `sigma2 * solve(XtX)` |
+| $\text{se}(\hat\beta_j)$ | $\sqrt{\text{Var}(\hat\beta)_{jj}}$ | `sqrt(diag(Var_beta))` |
+| $t_j$ | $\hat\beta_j / \text{se}(\hat\beta_j)$ | `beta_h / se_beta` |
+| p-valor | $2P(T > |t_j|)$ | `2 * pt(-abs(t_stat), df = gl)` |
+| $R^2$ | $1 - \text{SCR}/\text{SCT}$ | `1 - SCR/SCT` |
+| $F$ | $(R^2/k)/((1-R^2)/(n-K))$ | `(R2/k) / ((1-R2)/(n-K))` |
+| IC 95% | $\hat\beta_j \pm t_{0.975}\,\text{se}(\hat\beta_j)$ | `beta_h ± qt(0.975, gl) * se_beta` |
+
+------------------------------------------------------------------------
+
+*Clase complementaria · Econometría 1 — ECON 3311 / ECON 3321 ·
+Universidad de los Andes · 2026-19*

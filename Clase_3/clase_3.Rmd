@@ -40,6 +40,7 @@ knitr::opts_chunk$set(
 # Paquetes
 
 ```{r paquetes}
+installed.packages("pacman")
 library(pacman)
 p_load(
   tidyverse,    # dplyr, ggplot2, tidyr
@@ -48,7 +49,8 @@ p_load(
   modelsummary, # tablas de regresión
   patchwork,    # combinar gráficos
   scales,       # formato de ejes
-  pandoc        #para exportar regresiones
+  pandoc,       #para exportar regresiones
+  mutate      
 )
 ```
 
@@ -121,7 +123,7 @@ ggplot(fin, aes(x = log_ing, y = log_gasto)) +
   geom_smooth(method = "lm", color = "firebrick", se = TRUE, linewidth = 0.9) +
   labs(
     title    = "log(Gasto) vs. log(Ingreso tributario)",
-    subtitle = "La línea roja es la recta OLS",
+    subtitle = "La linea roja es la recta OLS",
     x = "log(Ingreso tributario)",
     y = "log(Gasto de funcionamiento)",
     caption = "Fuente: Finanzas territoriales municipales."
@@ -190,7 +192,7 @@ modelsummary(
     "log_sgp"     = "log(Transferencias SGP)",
     "log_pob"     = "log(Población)"
   ),
-  title = "Variable dependiente: log(Gasto de funcionamiento)"
+  title = "variable dependiente: log(Gasto de funcionamiento)"
 )
 ```
 
@@ -224,7 +226,7 @@ La forma en que especifican $X$ e $Y$ cambia completamente la interpretación de
 ## Tabla resumen
 
 | Modelo | Ecuación | Interpretación de $\hat\beta_1$ |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | **Nivel–nivel** | $Y = \beta_0 + \beta_1 X$ | $\Delta Y = \hat\beta_1 \cdot \Delta X$ (en unidades) |
 | **Log–nivel** | $\ln Y = \beta_0 + \beta_1 X$ | $\%\Delta Y \approx 100\hat\beta_1 \cdot \Delta X$ |
 | **Nivel–log** | $Y = \beta_0 + \beta_1 \ln X$ | $\Delta Y \approx \frac{\hat\beta_1}{100} \cdot \%\Delta X$ |
@@ -294,6 +296,7 @@ p_ll <- ggplot(fin, aes(log_ing, log_gasto)) +
   geom_smooth(method="lm", color="firebrick", se=FALSE) +
   labs(title="Log–Log", x="log(Ingreso)", y="log(Gasto)") + theme_minimal()
 
+
 (p_nn | p_ln) / (p_nl | p_ll) +
   plot_annotation(
     title   = "",
@@ -346,7 +349,7 @@ p2 <- ggplot(data.frame(x, y = y_cuad), aes(x, y)) +
   geom_smooth(method = "lm", formula = y ~ x + I(x^2),
               color = "forestgreen", se = FALSE, linewidth = 1, linetype = "dashed") +
   labs(
-    title    = "✔ Caso 2: cuadrático en variables, lineal en parámetros",
+    title    = "✔ Caso 2: cuadratico en variables, lineal en parametros",
     subtitle = "Rojo = OLS con X  (equivocado) · Verde = OLS con X + X²  (correcto, sigue siendo OLS)",
     x = "X", y = "Y"
   ) +
@@ -389,7 +392,7 @@ p3 <- ggplot() +
                                    "Verdadero"      = "dotted")) +
   labs(
     title    = "✘ Caso 3: NO lineal en parámetros — Y = α·exp(β·X) + u",
-    subtitle = "OLS falla al recuperar α y β · NLS (mínimos cuadrados no lineales) los recupera",
+    subtitle = "OLS falla al recuperar α y β · NLS (minimos cuadrados no lineales) los recupera",
     x = "X", y = "Y",
     color = NULL, linetype = NULL
   ) +
@@ -646,13 +649,7 @@ Este es el ejemplo más famoso de la estadística aplicada. Cuatro conjuntos de 
 # R trae el cuarteto de Anscombe incorporado
 data("anscombe")
 
-# Pasar a formato largo
-ansc <- bind_rows(
-  tibble(set = "I",   x = anscombe$x1, y = anscombe$y1),
-  tibble(set = "II",  x = anscombe$x2, y = anscombe$y2),
-  tibble(set = "III", x = anscombe$x3, y = anscombe$y3),
-  tibble(set = "IV",  x = anscombe$x4, y = anscombe$y4)
-)
+
 
 # Estadísticas por grupo — todas casi iguales
 ansc |>

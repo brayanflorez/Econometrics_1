@@ -1,0 +1,580 @@
+---
+title: "Clase 4: Inferencia Causal en R"
+subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
+author: "Brayan David Flórez | Profesor complementario"
+date: "2026-19"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    number_sections: true
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>",
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 4.5
+)
+```
+
+------------------------------------------------------------------------
+
+> **Universidad de los Andes** \| Facultad de Economía\
+> Clase complementaria — Viernes 17 de julio · 7 a 10 AM\
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+# Paquetes
+
+```{r paquetes}
+installed.packages("pacman")
+library(pacman)
+p_load(
+  tidyverse,        # dplyr, ggplot2, tidyr
+  broom,            # tidy(), glance(), augment()
+  modelsummary,     # tablas de regresión
+  patchwork,        # combinar gráficos
+  scales,           # formato de ejes
+  marginaleffects,  # efectos marginales promedio (APE)
+  ivreg,            # variables instrumentales / 2SLS
+  estimatr          # lm_robust() con errores estándar por clúster
+)
+```
+
+------------------------------------------------------------------------
+
+# De la correlación a la causalidad
+
+> $\hat\beta$ de una regresión es un número. Que ese número tenga interpretación **causal** depende de un supuesto de identificación, no de qué tan bueno sea el ajuste ($R^2$) ni de qué tan significativo sea el coeficiente.
+
+| Bloque | Pregunta que responde | Supuesto clave |
+|------------------------|------------------------|------------------------|
+| **A. Resultados potenciales** | ¿Cuál es el efecto de un tratamiento $D_i$ binario? | Asignación aleatoria / no hay sesgo de selección |
+| **B. Variable binaria** | ¿Cómo interpreto una regresión cuando $Y_i \in \{0,1\}$? | Ninguno nuevo, es sobre *interpretación*, no identificación |
+| **C. Variables instrumentales** | ¿Qué hago si $\text{Cov}(x_i,\epsilon_i)\neq 0$? | Relevancia + exclusión del instrumento |
+| **D. Diferencias en diferencias** | ¿Cómo comparo un tratado y un control que empiezan distintos? | Tendencias paralelas |
+
+Para sus trabajos: **primero identifiquen qué diseño tienen, y de ahí eligen la herramienta**.
+
+------------------------------------------------------------------------
+
+# BLOQUE A: Resultados potenciales y el problema fundamental
+
+## La idea
+
+Para cada persona $i$ existen dos números que **nunca observamos los dos a la vez**:
+
+$$y_i^1 \text{ (resultado si recibe el tratamiento)}, \qquad y_i^0 \text{ (resultado si no lo recibe)}$$
+
+El efecto causal individual es $\tau_i = y_i^1 - y_i^0$. Lo que observamos es
+
+$$y_i = y_i^1 D_i + y_i^0(1-D_i), \qquad D_i = \begin{cases} 1 & \text{tratado} \\ 0 & \text{no tratado}\end{cases}$$
+
+**El problema fundamental de la inferencia causal:** solo vemos un estado de cada persona: el que corresponde a su $D_i$ real. El otro es un contrafactual que nunca ocurrió. Por eso $\tau_i$ no se puede calcular para *nadie* en la muestra: nos falta siempre una de las dos piezas. En una simulación, en cambio, nosotros *sí* podemos generar ambas, por eso es la mejor forma de entender de dónde sale el sesgo de selección.
+
+## De dónde sale la fórmula: la descomposición algebraica
+
+Este es el resultado que conecta resultados potenciales con lo que efectivamente podemos calcular en datos. Partiendo de $y_i = y_i^1 D_i + y_i^0(1-D_i)$, tomamos esperanza condicional en cada grupo:
+
+$$\mathbb{E}[y_i\mid D_i=1] = \mathbb{E}[y_i^1\mid D_i=1], \qquad \mathbb{E}[y_i\mid D_i=0] = \mathbb{E}[y_i^0\mid D_i=0]$$
+
+Entonces la diferencia de medias observada es
+
+$$\mathbb{E}[y_i\mid D_i=1] - \mathbb{E}[y_i\mid D_i=0] = \mathbb{E}[y_i^1\mid D_i=1] - \mathbb{E}[y_i^0\mid D_i=0]$$
+
+**El truco:** sumar y restar $\mathbb{E}[y_i^0\mid D_i=1]$ el resultado *sin* tratamiento de los mismos tratados. No lo observamos, pero es válido algebraicamente sumarlo y restarlo:
+
+$$= \underbrace{\Big(\mathbb{E}[y_i^1\mid D_i=1]-\mathbb{E}[y_i^0\mid D_i=1]\Big)}_{\tau_{ATT}} \;+\; \underbrace{\Big(\mathbb{E}[y_i^0\mid D_i=1]-\mathbb{E}[y_i^0\mid D_i=0]\Big)}_{\text{sesgo de selección}}$$
+
+El primer paréntesis es exactamente $\tau_{ATT}$ (compara $y^1$ y $y^0$ **dentro** del mismo grupo de tratados). El segundo es qué tan distintos eran los dos grupos *incluso si nadie se hubiera tratado*: el sesgo de selección.
+
+## Simulación: estudiar y la nota del quiz
+
+Generamos una "población" en la que conocemos los dos resultados potenciales de cada estudiante, y el efecto verdadero de estudiar.
+
+```{r po-simular}
+set.seed(123)
+n <- 3000
+
+# Habilidad no observada de cada estudiante
+habilidad <- rnorm(n, mean = 0, sd = 1)
+
+# Resultados potenciales
+y0  <- 60 + 8 * habilidad + rnorm(n, 0, 5)   # nota si NO estudia
+tau <- 10 + 2 * habilidad                     # efecto de estudiar (heterogéneo)
+y1  <- y0 + tau                               # nota si SÍ estudia
+
+ATE_verdadero <- mean(tau)
+ATT_verdadero <- mean(tau[habilidad > median(habilidad)])  # solo referencia
+
+cat("ATE verdadero (promedio de tau_i en toda la población):", round(ATE_verdadero, 2), "\n")
+```
+
+Ahora simulamos **dos formas distintas** de decidir quién estudia:
+
+```{r po-seleccion}
+# (1) Datos observacionales: estudiar está correlacionado con la habilidad
+#     (los estudiantes más hábiles autoseleccionan estudiar más)
+prob_estudia <- pnorm(0.8 * habilidad)
+D_obs  <- rbinom(n, 1, prob_estudia)
+y_obs  <- ifelse(D_obs == 1, y1, y0)
+
+# (2) Experimento aleatorizado (RCT): moneda al aire, sin relación con habilidad
+D_rct  <- rbinom(n, 1, 0.5)
+y_rct  <- ifelse(D_rct == 1, y1, y0)
+
+diff_observacional <- mean(y_obs[D_obs == 1]) - mean(y_obs[D_obs == 0])
+diff_rct           <- mean(y_rct[D_rct == 1]) - mean(y_rct[D_rct == 0])
+
+cat("Diferencia de medias — datos observacionales:", round(diff_observacional, 2), "\n")
+cat("Diferencia de medias — experimento aleatorizado:", round(diff_rct, 2), "\n")
+cat("ATE verdadero:                                  ", round(ATE_verdadero, 2), "\n")
+```
+
+> **Nota:** la diferencia de medias es exactamente el $\hat\beta_1$ de `lm(y ~ D)`. Compruébenlo:
+
+```{r po-regresion}
+tidy(lm(y_obs ~ D_obs))
+tidy(lm(y_rct ~ D_rct))
+```
+
+## Por qué se rompe la comparación observacional
+
+```{r po-plot, fig.width=8, fig.height=4.5}
+comparacion <- data.frame(
+  metodo = c("Diferencia de medias\n(observacional)",
+             "Diferencia de medias\n(experimento aleatorizado)",
+             "ATE verdadero"),
+  valor  = c(diff_observacional, diff_rct, ATE_verdadero),
+  tipo   = c("Sesgado", "Correcto", "Verdadero")
+)
+
+ggplot(comparacion, aes(x = metodo, y = valor, fill = tipo)) +
+  geom_col(width = 0.55) +
+  geom_hline(yintercept = ATE_verdadero, linetype = "dashed", color = "grey30") +
+  scale_fill_manual(values = c("Sesgado" = "firebrick",
+                                "Correcto" = "forestgreen",
+                                "Verdadero" = "grey30")) +
+  labs(
+    title    = "Sesgo de selección vs. aleatorización",
+    subtitle = "Cuando D no es aleatorio, la comparación simple confunde el efecto con la autoselección",
+    x = NULL, y = "Efecto estimado", fill = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+## ¿Positivo o negativo? La intuición de la dirección del sesgo
+
+El sesgo de selección es $\mathbb{E}[y_i^0\mid D_i=1]-\mathbb{E}[y_i^0\mid D_i=0]$: compara el resultado **sin tratar** de los dos grupos. Su signo depende de *quién se autoselecciona*, no del efecto del tratamiento en sí:
+
+- En nuestra simulación, los estudiantes más **hábiles** son los que más estudian (`prob_estudia` sube con `habilidad`), y la habilidad *también* sube la nota que sacarían sin estudiar ($y_i^0$). Como ambas cosas van en la misma dirección, $\mathbb{E}[y_i^0\mid D=1] > \mathbb{E}[y_i^0\mid D=0]$ → **sesgo positivo**: la comparación simple sobreestima el efecto de estudiar.
+- Si en cambio quienes estudian fueran los estudiantes que **peor iban** (buscan compensar una base débil), tendríamos $\mathbb{E}[y_i^0\mid D=1] < \mathbb{E}[y_i^0\mid D=0]$ → sesgo **negativo**: la comparación simple subestimaría el efecto.
+
+> **Para el examen:** pregúntense, el grupo que se autoselecciona al tratamiento, ¿ya venía mejor o peor *antes* de tratarse, en la característica no observada que les preocupa? Si venía mejor → sesgo positivo. Si venía peor → sesgo negativo. El signo del sesgo es sobre $y^0$, nunca sobre $\tau_i$.
+
+## SUTVA: el supuesto que se necesita incluso con aleatorización perfecta
+
+La aleatorización garantiza $(y_i^1,y_i^0)\perp D_i$, es decir, sesgo de selección $=0$. Pero para que $y_i = y_i^1 D_i + y_i^0(1-D_i)$ tenga sentido en primer lugar, necesitamos además **SUTVA** (*Stable Unit Treatment Value Assumption*):
+
+1.  **No interferencia:** el resultado potencial de $i$ no depende de qué tratamiento reciban *los demás*, no hay efectos de contagio.
+
+2.  **Una sola versión del tratamiento:** "estar tratado" significa lo mismo para todos, no hay versiones ocultas distintas de $D_i=1$.
+
+------------------------------------------------------------------------
+
+# BLOQUE B: Variable dependiente binaria
+
+## La idea
+
+Cuando $y_i \in \{0,1\}$ (empleado/no, default/no, formal/informal), su esperanza condicional se vuelve una **probabilidad**. La razón es puramente algebraica:
+
+$$\mathbb{E}[y_i \mid x_i] = 1\cdot\mathbb{P}(y_i=1\mid x_i) + 0\cdot\mathbb{P}(y_i=0\mid x_i) = \mathbb{P}(y_i=1\mid x_i)$$
+
+Por eso llamamos a $p(x) := \mathbb{P}(y_i=1\mid x_i=x) = \mathbb{E}[y_i\mid x_i=x]$ la **probabilidad de respuesta**: es literalmente lo mismo que la regresión ya sabe estimar (una esperanza condicional), solo que ahora esa esperanza vive en $[0,1]$ y se interpreta como probabilidad. Todo el bloque es sobre qué forma funcional darle a $p(x)$.
+
+Estudiamos tres formas de modelar $p(x)$:
+
+| Modelo | Ecuación | $p(x) \in [0,1]$ garantizado |
+|------------------------|------------------------|------------------------|
+| **LPM** (`lm`) | $p(x_i) = \beta_0 + \beta_1 x_i$ |  No |
+| **Logit** (`glm`, link `logit`) | $p(x_i) = \Lambda(x_i'\beta)$ |  Sí |
+| **Probit** (`glm`, link `probit`) | $p(x_i) = \Phi(x_i'\beta)$ |  Sí |
+
+## Simulación: educación y empleo
+
+```{r bin-simular}
+set.seed(42)
+n <- 2000
+
+educ      <- round(runif(n, 0, 20))          # años de educación
+habilidad2 <- rnorm(n)
+
+# Modelo de variable latente: empleo* = b0 + b1*educ + habilidad + error logístico
+y_latente <- -2 + 0.25 * educ + 0.5 * habilidad2 + rlogis(n)
+empleo    <- as.integer(y_latente > 0)
+
+df_bin <- data.frame(educ, empleo)
+
+m_lpm    <- lm(empleo ~ educ,   data = df_bin)
+m_logit  <- glm(empleo ~ educ,  data = df_bin, family = binomial(link = "logit"))
+m_probit <- glm(empleo ~ educ,  data = df_bin, family = binomial(link = "probit"))
+```
+
+```{r bin-tabla}
+modelsummary(
+  list("LPM" = m_lpm, "Logit" = m_logit, "Probit" = m_probit),
+  stars   = TRUE,
+  gof_map = c("nobs"),
+  coef_rename = c("(Intercept)" = "Intercepto", "educ" = "Educación (años)"),
+  title = "Los coeficientes crudos NO son comparables entre modelos"
+)
+```
+
+En el LPM, $\hat\beta_1$ se interpreta directamente: por cada año adicional de educación, la probabilidad de estar empleado sube $\hat\beta_1\times 100$ puntos porcentuales, manteniendo la habilidad fija. Ese es exactamente el tipo de lectura que les van a pedir para un coeficiente de LPM, coeficiente en puntos porcentuales, nada más.
+
+## Los dos problemas del LPM — y cómo Probit/Logit los resuelven
+
+**Problema 1 — predicciones fuera de** $[0,1]$. Nada obliga a $\beta_0+\beta_1 x_i$ a quedarse en $[0,1]$.
+
+**Problema 2 — efecto marginal constante.** En el LPM, el efecto de $x$ sobre la probabilidad es $\beta_1$ **sin importar el valor de** $x$. Pero mover la probabilidad de $0.05$ a $0.08$ no debería costar "lo mismo" que moverla de $0.50$ a $0.53$, cerca de los bordes hay menos margen. Lo vemos calculando el efecto marginal instantáneo, $g(x_i'\hat\beta)\hat\beta_1$, en dos niveles de educación distintos:
+
+```{}
+```
+
+> 
+
+**La solución de Probit/Logit:** pasar el índice $x_i'\beta$ por una función $G$ creciente que aplasta toda la recta real dentro de $(0,1)$ — $\Phi$ (Normal) para Probit, $\Lambda$ (logística) para Logit. Como $G$ no es lineal, ya no existe una fórmula cerrada como la de OLS para minimizar errores al cuadrado; en su lugar, buscamos el $\hat\beta$ que hace **más probable haber observado los datos que efectivamente observamos**: máxima verosimilitud (`glm()` lo hace por ustedes).
+
+```{r bin-plot, fig.width=8, fig.height=4.5}
+grid <- data.frame(educ = seq(0, 20, by = 0.5))
+grid$LPM    <- predict(m_lpm,    newdata = grid)
+grid$Logit  <- predict(m_logit,  newdata = grid, type = "response")
+grid$Probit <- predict(m_probit, newdata = grid, type = "response")
+
+grid_largo <- grid |> pivot_longer(-educ, names_to = "modelo", values_to = "prob")
+
+ggplot(grid_largo, aes(educ, prob, color = modelo, linetype = modelo)) +
+  geom_line(linewidth = 1.1) +
+  geom_hline(yintercept = c(0, 1), linetype = "dotted", color = "grey40") +
+  scale_color_manual(values = c("LPM" = "firebrick", "Logit" = "steelblue", "Probit" = "forestgreen")) +
+  labs(
+    title    = "Probabilidad predicha de estar empleado, por modelo",
+    subtitle = "",
+    x = "Años de educación", y = "P(empleo = 1 | educación)",
+    color = NULL, linetype = NULL
+  ) +
+  theme_minimal()
+```
+
+## Reportando el efecto: PEA vs. APE
+
+En Logit/Probit, $\hat\beta_j$ **no es** el efecto parcial. Por la regla de la cadena:
+
+$$\frac{\partial\,\mathbb{P}(y_i=1\mid x_i)}{\partial x_{ij}} = g(x_i'\hat\beta)\,\hat\beta_j, \qquad g = G'$$
+
+El signo de $\hat\beta_j$ sí les dice el signo del efecto (porque $g>0$ siempre), pero la magnitud depende de en qué $x_i$ evalúen $g$, por eso el número de la tabla de coeficientes no se puede leer "tal cual". Usamos `marginaleffects::avg_slopes()` para obtener el **efecto parcial promedio (APE)**: el promedio, sobre todos los individuos de la muestra, de ese efecto parcial individual
+
+```{r bin-ape}
+ape_lpm    <- avg_slopes(m_lpm,    variables = "educ")
+ape_logit  <- avg_slopes(m_logit,  variables = "educ")
+ape_probit <- avg_slopes(m_probit, variables = "educ")
+
+bind_rows(
+  data.frame(modelo = "LPM",    APE = ape_lpm$estimate,    se = ape_lpm$std.error),
+  data.frame(modelo = "Logit",  APE = ape_logit$estimate,  se = ape_logit$std.error),
+  data.frame(modelo = "Probit", APE = ape_probit$estimate, se = ape_probit$std.error)
+) |>
+  mutate(across(where(is.numeric), ~round(., 4)))
+```
+
+------------------------------------------------------------------------
+
+# BLOQUE C: Variables instrumentales
+
+## La idea
+
+Si $\text{Cov}(x_i, \epsilon_i) \neq 0$ (variable omitida, simultaneidad, error de medición), OLS es **inconsistente**. Un instrumento $z_i$ arregla esto si cumple:
+
+- **Relevancia** (testeable): $\text{Cov}(z_i, x_i) \neq 0$
+- **Exclusión** (NO testeable, se defiende con argumento económico): $\text{Cov}(z_i, \epsilon_i) = 0$
+
+$$\hat\beta_1^{IV} = \frac{\text{Cov}(z_i,y_i)}{\text{Cov}(z_i,x_i)}$$
+
+## Simulación: escolaridad, habilidad y salario
+
+La habilidad afecta tanto la escolaridad como el salario, está "escondida" en el error de una regresión simple, generando endogeneidad.
+
+```{r iv-simular}
+
+set.seed(7)
+n <- 3000
+
+habilidad3 <- rnorm(n)                    # no observada — vive en el error
+z          <- rnorm(n)                    # instrumento: no está correlacionado con la habilidad
+
+# La escolaridad depende del instrumento Y de la habilidad
+escolaridad <- 12 + 1.5 * z + 2 * habilidad3 + rnorm(n, 0, 1)
+
+# El salario depende de la escolaridad Y (otra vez) de la habilidad
+BETA1_VERDADERO <- 0.8
+salario <- 10 + BETA1_VERDADERO * escolaridad + 3 * habilidad3 + rnorm(n, 0, 2)
+
+df_iv <- data.frame(salario, escolaridad, z)
+```
+
+```{r iv-estimar}
+m_ols <- lm(salario ~ escolaridad, data = df_iv)
+m_iv  <- ivreg(salario ~ escolaridad | z, data = df_iv)
+
+modelsummary(
+  list("OLS (sesgado)" = m_ols, "IV / 2SLS" = m_iv),
+  stars   = TRUE,
+  gof_map = c("nobs"),
+  coef_rename = c("(Intercept)" = "Intercepto", "escolaridad" = "Escolaridad"),
+  title = "Efecto de la escolaridad sobre el salario",
+  notes = list(paste0("beta_1 verdadero (fijado en la simulación) = ", BETA1_VERDADERO))
+)
+```
+
+## Chequeo obligatorio: la relevancia (primera etapa)
+
+```{r iv-primera-etapa}
+m_primera_etapa <- lm(escolaridad ~ z, data = df_iv)
+f_stat <- summary(m_primera_etapa)$fstatistic["value"]
+cat("F-estadístico de la primera etapa:", round(f_stat, 1),
+    ifelse(f_stat > 10, "→ instrumento fuerte (F > 10)", "→ ¡ALERTA! instrumento débil (F < 10)"), "\n")
+```
+
+## El sesgo de OLS y la consistencia de IV, en repetidas muestras
+
+```{r iv-mc}
+simular_iv <- function(n = 400) {
+  a  <- rnorm(n)
+  zz <- rnorm(n)
+  ed <- 12 + 1.5 * zz + 2 * a + rnorm(n, 0, 1)
+  wg <- 10 + BETA1_VERDADERO * ed + 3 * a + rnorm(n, 0, 2)
+  d  <- data.frame(wg, ed, zz)
+  c(
+    ols = coef(lm(wg ~ ed, data = d))["ed"],
+    iv  = coef(ivreg(wg ~ ed | zz, data = d))["ed"]
+  )
+}
+
+resultados_iv <- t(replicate(1000, simular_iv()))
+df_resultados <- as.data.frame(resultados_iv) |>
+  pivot_longer(everything(), names_to = "metodo", values_to = "beta") |>
+  mutate(metodo = case_when(
+    str_starts(metodo, "ols") ~ "OLS",
+    str_starts(metodo, "iv")  ~ "IV"
+  ))
+```
+
+```{r iv-plot, fig.width=8, fig.height=4.5}
+ggplot(df_resultados, aes(x = beta, fill = metodo, color = metodo)) +
+  geom_density(alpha = 0.35, linewidth = 0.9) +
+  geom_vline(xintercept = BETA1_VERDADERO, linetype = "dashed", color = "black", linewidth = 1) +
+  annotate("text", x = BETA1_VERDADERO + 0.03, y = Inf,
+           label = paste0("beta1 verdadero = ", BETA1_VERDADERO),
+           hjust = 0, vjust = 1.8, size = 3.5) +
+  scale_fill_manual(values = c("OLS" = "firebrick", "IV" = "steelblue")) +
+  scale_color_manual(values = c("OLS" = "firebrick", "IV" = "steelblue")) +
+  labs(
+    title    = "OLS está sesgado; IV se centra en el valor verdadero",
+    subtitle = "1 000 muestras simuladas, n = 400 cada una",
+    x = expression(hat(beta)[1]), y = "Densidad", fill = NULL, color = NULL
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+> **Para su trabajo:** si defienden un instrumento, esperen dos preguntas (1) ¿el $F$ de la primera etapa es alto? (lo pueden mostrar), y (2) ¿por qué el instrumento *solo* afecta a $Y$ a través de $X$? (lo tienen que argumentar, no lo pueden probar con una regresión).
+
+## Instrumento binario: el estimador de Wald
+
+Cuando $z_i$ y $D_i$ son binarios (como en el sorteo militar de Vietnam que vieron en la magistral), el estimador de IV colapsa en una razón muy simple de calcular a mano.
+
+$$\hat\beta_1^{Wald} = \frac{\overbrace{\mathbb{E}[y\mid z=1]-\mathbb{E}[y\mid z=0]}^{\text{forma reducida}}}{\underbrace{\mathbb{P}(D=1\mid z=1)-\mathbb{P}(D=1\mid z=0)}_{\text{primera etapa}}}$$
+
+```{r iv-wald-simular}
+set.seed(55)
+n <- 4000
+
+elegible   <- rbinom(n, 1, 0.5)              # instrumento: elegibilidad al sorteo (aleatoria)
+habilidad4 <- rnorm(n)                        # no observada
+
+# La elegibilidad sube la probabilidad de ser veterano, pero no es la única causa
+prob_veterano <- plogis(-0.5 + 1.2 * elegible + 0.3 * habilidad4)
+veterano      <- rbinom(n, 1, prob_veterano)
+
+# El salario depende de ser veterano Y de la habilidad (la fuente de endogeneidad)
+salario_mil <- 20 - 2 * veterano + 4 * habilidad4 + rnorm(n, 0, 3)
+
+df_wald <- data.frame(elegible, veterano, salario_mil)
+
+forma_reducida <- mean(df_wald$salario_mil[df_wald$elegible == 1]) -
+                   mean(df_wald$salario_mil[df_wald$elegible == 0])
+primera_etapa  <- mean(df_wald$veterano[df_wald$elegible == 1]) -
+                   mean(df_wald$veterano[df_wald$elegible == 0])
+wald <- forma_reducida / primera_etapa
+
+cat("Forma reducida   E[salario|z=1] - E[salario|z=0]:", round(forma_reducida, 3), "\n")
+cat("Primera etapa    P(vet|z=1) - P(vet|z=0):         ", round(primera_etapa, 3), "\n")
+cat("Estimador de Wald (efecto del servicio militar):  ", round(wald, 3), "\n")
+```
+
+```{r iv-wald-verificar}
+# El mismo número, calculado con ivreg() sobre el instrumento binario
+tidy(ivreg(salario_mil ~ veterano | elegible, data = df_wald))
+```
+
+> Noten que `ivreg()` con un instrumento binario y un tratamiento binario reproduce **exactamente** la razón de Wald calculada a mano.
+
+## LATE: ¿el efecto para quién?
+
+El instrumento no mueve el tratamiento de todo el mundo, solo el de algunos. Eso divide a la población en cuatro tipos, según cómo reaccionarían a cada valor del instrumento:
+
+| Tipo | ¿Se trata si $z=0$? | ¿Se trata si $z=1$? | ¿El instrumento los mueve? |
+|------------------|------------------|------------------|------------------|
+| **Compliers** | No | Sí | Sí — es la gente cuyo tratamiento *depende* del instrumento |
+| **Always-takers** | Sí | Sí | No — se tratan pase lo que pase |
+| **Never-takers** | No | No | No — nunca se tratan |
+| **Defiers** | Sí | No | Sí, pero al revés (los excluye el supuesto de monotonicidad) |
+
+El estimador de Wald identifica el **LATE** (*Local Average Treatment Effect*): el efecto promedio del tratamiento, pero **solo para los compliers**. Es "local" porque *no* es el efecto para toda la población, de los always-takers y los never-takers no aprendemos nada, porque su tratamiento nunca cambia con $z$. Por eso, dos instrumentos distintos para la misma pregunta pueden dar efectos distintos: cada instrumento mueve a un grupo distinto de compliers, y el LATE que arroja es válido solo para ese grupo.
+
+------------------------------------------------------------------------
+
+# BLOQUE D: Diferencias en diferencias
+
+## La idea: dos comparaciones, cada una contaminada por su lado
+
+Si un tratado y un control no son comparables desde el inicio, ninguna comparación simple sirve sola:
+
+- **Antes vs. después, solo en el tratado.** Si algo más cambió con el tiempo, un choque macro, una tendencia general de la economía, lo confunden con el efecto del tratamiento. Es la **tendencia de tiempo** contaminando la comparación.
+- **Tratado vs. control, solo después.** Si los dos grupos ya eran distintos desde el principio por características fijas propias de cada uno, confunden esa diferencia de nivel con el efecto. Es la **diferencia fija de grupo** contaminando la comparación.
+
+DiD combina las dos comparaciones para que esas dos fuentes de contaminación se cancelen entre sí. Formalmente, escribimos el resultado *sin* tratamiento como
+
+$$Y_{it}(0) = \alpha_i + \lambda_t + u_{it}$$
+
+- $\alpha_i$: nivel fijo de cada unidad/grupo (se cancela al diferenciar **en el tiempo**, dentro de cada grupo)
+- $\lambda_t$: choque común de cada periodo (se cancela al diferenciar **entre grupos**, en cada punto del tiempo)
+
+$$\hat\delta = \bigl(\bar Y_{T,\text{post}} - \bar Y_{T,\text{pre}}\bigr) - \bigl(\bar Y_{C,\text{post}} - \bar Y_{C,\text{pre}}\bigr)$$
+
+## El ejemplo clásico
+
+```{r did-card-krueger}
+NJ_antes   <- 20.4; NJ_despues <- 21.0   # tratado: subió el salario mínimo
+PA_antes   <- 23.3; PA_despues <- 21.2   # control: no subió
+
+delta_NJ <- NJ_despues - NJ_antes
+delta_PA <- PA_despues - PA_antes
+DID_ck   <- delta_NJ - delta_PA
+
+cat("Cambio en NJ (tratado):  ", round(delta_NJ, 2), "\n")
+cat("Cambio en PA (control):  ", round(delta_PA, 2), "\n")
+cat("Estimador DiD:            ", round(DID_ck, 2), " → el salario mínimo NO redujo el empleo\n")
+```
+
+## El problema de solo 2 periodos — y por qué queremos más años
+
+Con un solo punto "antes" y un solo punto "después" (como en la tabla de Card-Krueger), la línea entre ellos es, por construcción, siempre recta, **no hay forma de ver si esa pendiente ya venía así desde antes**, o si es nueva. El supuesto de tendencias paralelas es sobre la *pendiente*, así que necesitamos varios periodos pre-tratamiento para poder verla. Simulamos un panel con **4 años antes** del tratamiento y **3 después**, en dos versiones: una donde el supuesto se cumple y otra donde no.
+
+```{r did-simular}
+set.seed(99)
+n_unidades <- 200
+periodos   <- -4:2                 # año 0 = primer año del tratamiento
+EFECTO_VERDADERO <- 5
+PENDIENTE_COMUN  <- 1.5            # crecimiento "natural" por año, común a ambos grupos
+
+alpha_i <- rnorm(n_unidades, 0, 3)         # nivel fijo de cada unidad
+grupo   <- rep(c("Tratado", "Control"), each = n_unidades / 2)
+
+construir_panel_multi <- function(pendiente_extra_tratado) {
+  map_dfr(periodos, function(t) {
+    tratamiento_activo <- as.integer(grupo == "Tratado" & t >= 0)
+    data.frame(
+      id      = 1:n_unidades,
+      grupo,
+      periodo = t,
+      y = 50 + alpha_i +
+          PENDIENTE_COMUN * t +
+          pendiente_extra_tratado * ifelse(grupo == "Tratado", t, 0) +  # pendiente propia del tratado (¡incluso antes de t=0!)
+          EFECTO_VERDADERO * tratamiento_activo +
+          rnorm(n_unidades, 0, 2)
+    )
+  }) |>
+    mutate(tratado = as.integer(grupo == "Tratado"),
+           post    = as.integer(periodo >= 0))
+}
+
+panel_paralelo <- construir_panel_multi(pendiente_extra_tratado = 0)    # mismo crecimiento pre-tratamiento
+panel_violado  <- construir_panel_multi(pendiente_extra_tratado = 1.2) # el tratado YA crecía más rápido antes de tratarse
+```
+
+## Viéndolo en el gráfico: ahora sí se nota la tendencia
+
+```{r did-plot, fig.width=10, fig.height=5}
+graficar_multi <- function(panel, titulo) {
+  medias <- panel |>
+    group_by(grupo, periodo) |>
+    summarise(media_y = mean(y), .groups = "drop")
+
+  ggplot(medias, aes(periodo, media_y, color = grupo)) +
+    geom_vline(xintercept = -0.5, linetype = "dotted", color = "grey50") +
+    geom_line(linewidth = 1.1) +
+    geom_point(size = 2.3) +
+    annotate("text", x = -0.5, y = min(medias$media_y), label = "inicia\ntratamiento",
+             hjust = 1.05, vjust = 0, size = 2.8, color = "grey50") +
+    scale_color_manual(values = c("Tratado" = "firebrick", "Control" = "steelblue")) +
+    labs(title = titulo, x = "Periodo (0 = primer año de tratamiento)", y = "Y promedio", color = NULL) +
+    theme_minimal() +
+    theme(legend.position = "bottom")
+}
+
+graficar_multi(panel_paralelo, "✔ Pre-periodos paralelos: evidencia a favor del supuesto") |
+graficar_multi(panel_violado,  "✘ Pre-periodos ya divergen: el supuesto es sospechoso")
+```
+
+> **Esto es exactamente lo que se hace en la práctica ("chequeo de pre-tendencias"):** grafiquen las medias de tratado y control en **todos** los periodos previos al tratamiento. Si ya venían caminando paralelas antes de que ocurriera nada, es evidencia (no prueba) a favor del supuesto. Si ya divergían, el $\hat\delta$ que calculen después va a mezclar el efecto del tratamiento con una tendencia que ya existía.
+
+```{}
+```
+
+```{}
+```
+
+La ecuación estimada es $Y_{it} = \beta_0 + \beta_1 \text{Tratado}_i + \beta_2\,\text{Post}_t + \delta\,(\text{Tratado}_i\times \text{Post}_t) + \varepsilon_{it}$:
+
+- $\beta_1$ (Tratado): la brecha fija de nivel entre los grupos, antes del tratamiento — es el $\alpha_i$ diferencial.
+- $\beta_2$ (Post): cuánto cambia $Y$ para **todos** por el simple paso del tiempo — es $\lambda_t$.
+- $\delta$ (Tratado × Post): lo que se mueve el grupo tratado **por encima** de esos dos efectos el estimador DiD.
+
+**¿Por qué errores estándar agrupados (clustered) por unidad, y no los usuales de MCO?** Porque cada unidad aparece varias veces en el panel (una fila por periodo), y los choques $u_{it}$ de una misma unidad están correlacionados en el tiempo, no son i.i.d. Ignorar eso hace que los errores estándar salgan artificialmente pequeños y se rechace $H_0$ con más frecuencia de la que deberían (Bertrand, Duflo y Mullainathan, 2004).
+
+> 
+
+------------------------------------------------------------------------
+
+|     |
+|-----|
+|     |
+
+------------------------------------------------------------------------
+
+*Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 \| Universidad de los Andes \| 2026-19*

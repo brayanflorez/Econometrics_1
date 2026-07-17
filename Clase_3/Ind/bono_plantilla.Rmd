@@ -1,0 +1,233 @@
+---
+title: "BONO — OLS con matrices"
+subtitle: "Econometría 1 — ECON 3311 / ECON 3321"
+author: "Nombre del estudiante"
+date: "2026-19"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    theme: flatly
+    highlight: tango
+    number_sections: true
+    df_print: paged
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo    = TRUE,
+  eval    = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  comment = "#>"
+)
+```
+
+------------------------------------------------------------------------
+
+> **Universidad de los Andes** \| Facultad de Economía\
+> Clase complementaria — Viernes 4 de julio\
+> Profesor magistral: Edicson Luna · Complementario: Brayan David Flórez
+
+------------------------------------------------------------------------
+
+# Los datos: `swiss`
+
+La base `swiss` viene incorporada en R. Contiene indicadores
+socioeconómicos de **47 cantones suizos** en 1888.
+
+| Variable | Descripción |
+|----|----|
+| `Fertility` | Tasa de fertilidad estandarizada *(variable dependiente)* |
+| `Agriculture` | \% de hombres empleados en agricultura |
+| `Education` | \% de reclutas con educación más allá de primaria |
+| `Catholic` | \% de población católica |
+| `Infant.Mortality` | Mortalidad infantil por cada 1 000 nacidos vivos |
+
+```{r datos}
+data(swiss)
+head(swiss)
+```
+
+**Modelo a estimar:**
+
+$$\text{Fertility}_i = \beta_0 + \beta_1\,\text{Agriculture}_i +
+\beta_2\,\text{Education}_i + \beta_3\,\text{Catholic}_i +
+\beta_4\,\text{Infant.Mortality}_i + \varepsilon_i$$
+
+------------------------------------------------------------------------
+
+# Paso 1 — Construir $Y$ y $X$
+
+Construyan la matriz de diseño $X$ (con una columna de unos para el
+intercepto) y el vector $Y$.
+
+```{r paso1-matrices}
+# Y: vector columna de la variable dependiente (n × 1)
+Y <- as.matrix(---------------)
+
+# X: matriz de diseño (n × K), primera columna = 1 para el intercepto
+X <- cbind(___, ___, ___, ___, ___)
+colnames(X) <- c("Intercepto", "Agriculture", "Education",
+                 "Catholic", "Infant.Mortality")
+
+# Verificar dimensiones
+cat("Dimensiones de Y:", dim(Y), "\n")
+cat("Dimensiones de X:", dim(X), "\n")
+
+# Ver las primeras filas de X
+head(X)
+```
+
+------------------------------------------------------------------------
+
+# Paso 2 — Estimar $\hat\beta = (X'X)^{-1}X'Y$
+
+Usen las funciones `t()` (transpuesta), `%*%` (multiplicación matricial)
+y `solve()` (inversa) para calcular $\hat\beta$.
+
+```{r paso2-beta}
+# X'X  (K × K)
+XtX <- -- %*% -- 
+
+# X'Y  (K × 1)
+XtY <- -- %*% -- 
+
+# beta_hat = (X'X)^{-1} X'Y
+beta_h <- ------
+
+rownames(beta_h) <- colnames(X)
+cat("Coeficientes estimados:\n")
+print(round(beta_h, 4))
+```
+
+**Lectura de coeficientes:**
+
+| Coeficiente                      | Valor | Interpretación |
+|----------------------------------|-------|----------------|
+| $\hat\beta_0$ (Intercepto)       |       | -------        |
+| $\hat\beta_1$ (Agriculture)      |       | ---            |
+| $\hat\beta_2$ (Education)        |       | ----           |
+| $\hat\beta_3$ (Catholic)         |       | ----           |
+| $\hat\beta_4$ (Infant.Mortality) |       | ----           |
+
+------------------------------------------------------------------------
+
+# Paso 3 — Residuos y $\hat\sigma^2$
+
+Recuerden: $e = Y - X\hat\beta$ y
+$\hat\sigma^2 = \frac{\text{SCR}}{n - K}$, donde $K$ incluye el
+intercepto.
+
+```{r paso3-sigma}
+n <- nrow(X)
+K <- ncol(X)
+
+# Residuos (n × 1)
+e_h <- ___ - ____
+
+# Suma de cuadrados de residuos: SCR = e'e
+SCR <- ___
+
+# Varianza estimada del error σ̂² = SCR / (n - K)
+sigma2 <- ___
+
+cat("n =", n, "| K =", K, "| g.l. =", n - K, "\n")
+cat("SCR    =", round(SCR,    4), "\n")
+cat("sigma² =", round(sigma2, 4), "\n")
+cat("sigma  =", round(sqrt(sigma2), 4), "\n")
+```
+
+------------------------------------------------------------------------
+
+# Paso 4 — $\text{Var}(\hat\beta)$ y errores estándar
+
+$$\text{Var}(\hat\beta \mid X) = \hat\sigma^2\,(X'X)^{-1}$$
+
+Los errores estándar son la **raíz de la diagonal** de esa matriz.
+
+```{r paso4-var}
+# Matriz de varianzas-covarianzas
+Var_beta <- ___
+
+# Errores estándar (raíz de la diagonal)
+se_beta <- ___
+
+cat("Errores estándar:\n")
+print(round(se_beta, 4))
+```
+
+------------------------------------------------------------------------
+
+# Paso 5 — Estadístico $t$ y p-valor
+
+Para cada coeficiente $j$:
+
+$$t_j = \frac{\hat\beta_j}{\text{se}(\hat\beta_j)} \sim t_{n-K}$$
+
+El p-valor (dos colas) es $p = 2\,P(T > |t_j|)$.
+
+```{r paso5-t}
+gl <- n - K
+
+# Estadístico t para cada coeficiente
+t_stat <- ___
+
+# P-valor (dos colas) — usen pt()
+p_val <- ___
+
+# Tabla resumen
+resultado <- data.frame(
+  Estimado  = round(beta_h[,1], 4),
+  Error_std = round(se_beta,    4),
+  t         = round(t_stat,     3),
+  p_valor   = round(p_val,      4)
+)
+print(resultado)
+```
+
+**Interpreten** (completen en sus propias palabras):
+
+> A un nivel de significancia del 5%, ¿cuáles coeficientes son
+> estadísticamente distintos de cero? ¿Qué dice el signo de cada uno?
+
+------------------------------------------------------------------------
+
+# Paso 6 — Prueba $F$ de significancia conjunta
+
+$$H_0: \beta_1 = \beta_2 = \beta_3 = \beta_4 = 0$$
+
+$$F = \frac{R^2/k}{(1-R^2)/(n-K)} \sim F_{k,\,n-K}$$
+
+donde $k$ = número de regresores **sin** el intercepto.
+
+```{r paso6-f}
+k <- K - 1
+
+# Suma total de cuadrados
+SCT <- ___
+
+# R²
+R2 <- ___
+
+# Estadístico F
+F_stat <- ___
+
+# P-valor del F — usen pf(..., lower.tail = FALSE)
+p_F <- ___
+
+cat("R²         =", round(R2,     4), "\n")
+cat("F          =", round(F_stat, 3), "\n")
+cat("p-valor F  =", formatC(p_F, format = "e", digits = 3), "\n")
+```
+
+**¿Se rechaza** $H_0$? (respondan aquí)
+
+------------------------------------------------------------------------
+
+*Clase complementaria · Econometría 1 — ECON 3311 / ECON 3321 ·
+Universidad de los Andes · 2026-19*
