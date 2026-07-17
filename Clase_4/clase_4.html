@@ -4462,7 +4462,7 @@ Wald calculada a mano.</p>
 <div id="late-el-efecto-para-quién" class="section level2" number="5.6">
 <h2><span class="header-section-number">5.6</span> LATE: ¿el efecto para
 quién?</h2>
-<p>El instrumento no mueve el tratamiento de todo el mundo — solo el de
+<p>El instrumento no mueve el tratamiento de todo el mundo, solo el de
 algunos. Eso divide a la población en cuatro tipos, según cómo
 reaccionarían a cada valor del instrumento:</p>
 <table>
@@ -4511,7 +4511,7 @@ instrumento</td>
 <p>El estimador de Wald identifica el <strong>LATE</strong> (<em>Local
 Average Treatment Effect</em>): el efecto promedio del tratamiento, pero
 <strong>solo para los compliers</strong>. Es “local” porque <em>no</em>
-es el efecto para toda la población — de los always-takers y los
+es el efecto para toda la población, de los always-takers y los
 never-takers no aprendemos nada, porque su tratamiento nunca cambia con
 <span class="math inline">\(z\)</span>. Por eso, dos instrumentos
 distintos para la misma pregunta pueden dar efectos distintos: cada
@@ -4530,8 +4530,8 @@ comparaciones, cada una contaminada por su lado</h2>
 ninguna comparación simple sirve sola:</p>
 <ul>
 <li><strong>Antes vs. después, solo en el tratado.</strong> Si algo más
-cambió con el tiempo — un choque macro, una tendencia general de la
-economía — lo confunden con el efecto del tratamiento. Es la
+cambió con el tiempo, un choque macro, una tendencia general de la
+economía, lo confunden con el efecto del tratamiento. Es la
 <strong>tendencia de tiempo</strong> contaminando la comparación.</li>
 <li><strong>Tratado vs. control, solo después.</strong> Si los dos
 grupos ya eran distintos desde el principio por características fijas
@@ -4556,9 +4556,9 @@ cada punto del tiempo)</li>
 Y_{T,\text{post}} - \bar Y_{T,\text{pre}}\bigr) - \bigl(\bar
 Y_{C,\text{post}} - \bar Y_{C,\text{pre}}\bigr)\]</span></p>
 </div>
-<div id="el-ejemplo-clásico-card-y-krueger-1994" class="section level2" number="6.2">
-<h2><span class="header-section-number">6.2</span> El ejemplo clásico:
-Card y Krueger (1994)</h2>
+<div id="el-ejemplo-clásico" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> El ejemplo
+clásico</h2>
 <div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" tabindex="-1"></a>NJ_antes   <span class="ot">&lt;-</span> <span class="fl">20.4</span>; NJ_despues <span class="ot">&lt;-</span> <span class="fl">21.0</span>   <span class="co"># tratado: subió el salario mínimo</span></span>
 <span id="cb33-2"><a href="#cb33-2" tabindex="-1"></a>PA_antes   <span class="ot">&lt;-</span> <span class="fl">23.3</span>; PA_despues <span class="ot">&lt;-</span> <span class="fl">21.2</span>   <span class="co"># control: no subió</span></span>
 <span id="cb33-3"><a href="#cb33-3" tabindex="-1"></a></span>
@@ -4578,7 +4578,7 @@ Card y Krueger (1994)</h2>
 periodos — y por qué queremos más años</h2>
 <p>Con un solo punto “antes” y un solo punto “después” (como en la tabla
 de Card-Krueger), la línea entre ellos es, por construcción, siempre
-recta — <strong>no hay forma de ver si esa pendiente ya venía así desde
+recta, <strong>no hay forma de ver si esa pendiente ya venía así desde
 antes</strong>, o si es nueva. El supuesto de tendencias paralelas es
 sobre la <em>pendiente</em>, así que necesitamos varios periodos
 pre-tratamiento para poder verla. Simulamos un panel con <strong>4 años
@@ -4643,561 +4643,10 @@ de pre-tendencias”):</strong> grafiquen las medias de tratado y control
 en <strong>todos</strong> los periodos previos al tratamiento. Si ya
 venían caminando paralelas antes de que ocurriera nada, es evidencia (no
 prueba) a favor del supuesto. Si ya divergían, el <span class="math inline">\(\hat\delta\)</span> que calculen después va a
-mezclar el efecto del tratamiento con una tendencia que ya existía —
-como en el panel de la derecha.</p>
+mezclar el efecto del tratamiento con una tendencia que ya existía.</p>
 </blockquote>
-</div>
-<div id="la-regresión-y-el-error-estándar-agrupado" class="section level2" number="6.5">
-<h2><span class="header-section-number">6.5</span> La regresión y el
-error estándar agrupado</h2>
-<div class="sourceCode" id="cb41"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" tabindex="-1"></a>m_paralelo <span class="ot">&lt;-</span> <span class="fu">lm_robust</span>(y <span class="sc">~</span> tratado <span class="sc">*</span> post, <span class="at">data =</span> panel_paralelo, <span class="at">clusters =</span> id)</span>
-<span id="cb41-2"><a href="#cb41-2" tabindex="-1"></a>m_violado  <span class="ot">&lt;-</span> <span class="fu">lm_robust</span>(y <span class="sc">~</span> tratado <span class="sc">*</span> post, <span class="at">data =</span> panel_violado,  <span class="at">clusters =</span> id)</span>
-<span id="cb41-3"><a href="#cb41-3" tabindex="-1"></a></span>
-<span id="cb41-4"><a href="#cb41-4" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Escenario CON tendencias paralelas   → delta estimado:&quot;</span>,</span>
-<span id="cb41-5"><a href="#cb41-5" tabindex="-1"></a>    <span class="fu">round</span>(<span class="fu">coef</span>(m_paralelo)[<span class="st">&quot;tratado:post&quot;</span>], <span class="dv">2</span>), <span class="st">&quot;  (verdadero = 5)</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>#&gt; Escenario CON tendencias paralelas   → delta estimado: 5.02   (verdadero = 5)</code></pre>
-<div class="sourceCode" id="cb43"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" tabindex="-1"></a><span class="fu">cat</span>(<span class="st">&quot;Escenario CON violación del supuesto → delta estimado:&quot;</span>,</span>
-<span id="cb43-2"><a href="#cb43-2" tabindex="-1"></a>    <span class="fu">round</span>(<span class="fu">coef</span>(m_violado)[<span class="st">&quot;tratado:post&quot;</span>], <span class="dv">2</span>), <span class="st">&quot;  (verdadero = 5, ¡sesgado!)</span><span class="sc">\n</span><span class="st">&quot;</span>)</span></code></pre></div>
-<pre><code>#&gt; Escenario CON violación del supuesto → delta estimado: 9.22   (verdadero = 5, ¡sesgado!)</code></pre>
-<div class="sourceCode" id="cb45"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" tabindex="-1"></a><span class="fu">modelsummary</span>(</span>
-<span id="cb45-2"><a href="#cb45-2" tabindex="-1"></a>  <span class="fu">list</span>(<span class="st">&quot;Tendencias paralelas&quot;</span> <span class="ot">=</span> m_paralelo, <span class="st">&quot;Supuesto violado&quot;</span> <span class="ot">=</span> m_violado),</span>
-<span id="cb45-3"><a href="#cb45-3" tabindex="-1"></a>  <span class="at">stars =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb45-4"><a href="#cb45-4" tabindex="-1"></a>  <span class="at">gof_map =</span> <span class="fu">c</span>(<span class="st">&quot;nobs&quot;</span>),</span>
-<span id="cb45-5"><a href="#cb45-5" tabindex="-1"></a>  <span class="at">coef_rename =</span> <span class="fu">c</span>(<span class="st">&quot;tratado&quot;</span> <span class="ot">=</span> <span class="st">&quot;Tratado&quot;</span>, <span class="st">&quot;post&quot;</span> <span class="ot">=</span> <span class="st">&quot;Después (post)&quot;</span>,</span>
-<span id="cb45-6"><a href="#cb45-6" tabindex="-1"></a>                   <span class="st">&quot;tratado:post&quot;</span> <span class="ot">=</span> <span class="st">&quot;Tratado x Después (delta)&quot;</span>),</span>
-<span id="cb45-7"><a href="#cb45-7" tabindex="-1"></a>  <span class="at">title =</span> <span class="st">&quot;Errores estándar agrupados (clustered) por unidad — panel repetido en el tiempo&quot;</span></span>
-<span id="cb45-8"><a href="#cb45-8" tabindex="-1"></a>)</span></code></pre></div>
-<!-- preamble start -->
-
-    <script>// TinyTable JavaScript Framework
-// Function factory for creating table-specific operations
-window.TinyTable = {
-  // Helper to create Tabulator instance with Luxon dependency
-  createTabulator: function(elementId, config) {
-    const { DateTime } = window.luxon || {};
-    return new Tabulator(elementId, {
-      dependencies: { DateTime },
-      ...config
-    });
-  },
-
-  createTableFunctions: function (tableId) {
-    const spans = []; // {top, left, rowspan, colspan}
-
-    function resolveToAnchor(i, j) {
-      // find if (i,j) is inside any span; return that span's anchor if so
-      for (const s of spans) {
-        if (
-          i >= s.top && i < s.top + s.rowspan &&
-          j >= s.left && j < s.left + s.colspan
-        ) {
-          return { i: s.top, j: s.left };
-        }
-      }
-      return { i, j };
-    }
-
-    return {
-      styleCell: function (i, j, css_id) {
-        // normalize possible string indices
-        i = +i; j = +j;
-
-        const table = document.getElementById(tableId);
-        const { i: ai, j: aj } = resolveToAnchor(i, j);
-        const cell = table.querySelector(`[data-row="${ai}"][data-col="${aj}"]`);
-        if (!cell) return; // silently skip if not found (e.g., removed)
-        cell.classList.add(css_id);
-      },
-
-      spanCell: function (i, j, rowspan, colspan) {
-        i = +i; j = +j;
-
-        const table = document.getElementById(tableId);
-        const targetCell = table.querySelector(`[data-row="${i}"][data-col="${j}"]`);
-        if (!targetCell) {
-          console.warn(`Cell at (${i}, ${j}) not found.`);
-          return;
-        }
-
-        // record span so future styleCell calls map to the anchor
-        spans.push({ top: i, left: j, rowspan, colspan });
-
-        // remove covered cells (except anchor)
-        const cellsToRemove = [];
-        for (let r = 0; r < rowspan; r++) {
-          for (let c = 0; c < colspan; c++) {
-            if (r === 0 && c === 0) continue;
-            const cell = table.querySelector(`[data-row="${i + r}"][data-col="${j + c}"]`);
-            if (cell) cellsToRemove.push(cell);
-          }
-        }
-        cellsToRemove.forEach(cell => cell.remove());
-
-        // set HTML attributes for clarity/serialization
-        targetCell.setAttribute('rowspan', rowspan);
-        targetCell.setAttribute('colspan', colspan);
-      }
-    };
-  }
-};
-
-// =============================================================================
-// TABULATOR CUSTOM FORMATTERS (revised)
-// =============================================================================
-
-// SVG sparkline
-function tinytable_sparkline(cell, p = {}) {
-  let values = cell.getValue() ?? [];
-  if (!Array.isArray(values)) values = [values];
-  // coerce to finite numbers & strip NaNs
-  values = values.map(Number).filter(Number.isFinite);
-  const n = values.length;
-  if (n === 0) return "";
-
-  const w = p.width ?? 120, h = p.height ?? 30, pad = p.pad ?? 2;
-  const color = p.color ?? "currentColor", sw = p.strokeWidth ?? 1.5;
-  const fill = p.fillArea ?? false;
-  const showDots = p.showDots ?? false;
-  const dotR = p.dotRadius ?? 1.75;
-  const ariaLabel = p.ariaLabel ?? `sparkline with ${n} points`;
-
-  // single pass for min/max
-  let min = Infinity, max = -Infinity;
-  for (let v of values) { if (v < min) min = v; if (v > max) max = v; }
-  const span = (max - min) || 1;
-
-  const x = i => pad + (i * (w - 2 * pad)) / Math.max(n - 1, 1);
-  const y = v => h - pad - ((v - min) * (h - 2 * pad)) / span;
-
-  let d = `M ${x(0)},${y(values[0])}`;
-  for (let i = 1; i < n; i++) d += ` L ${x(i)},${y(values[i])}`;
-
-  const NS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(NS, "svg");
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  svg.setAttribute("width", w);
-  svg.setAttribute("height", h);
-  svg.setAttribute("role", "img");
-  svg.setAttribute("aria-label", ariaLabel);
-
-  const path = document.createElementNS(NS, "path");
-  path.setAttribute("stroke", color);
-  path.setAttribute("stroke-width", sw);
-  path.setAttribute("vector-effect", "non-scaling-stroke");
-
-  if (fill) {
-    const area = document.createElementNS(NS, "path");
-    area.setAttribute("d", d + ` L ${x(n - 1)},${h - pad} L ${x(0)},${h - pad} Z`);
-    area.setAttribute("fill", color);
-    area.setAttribute("fill-opacity", p.fillOpacity ?? 0.25);
-    svg.appendChild(area);
-    path.setAttribute("d", d);
-    path.setAttribute("fill", "none");
-  } else {
-    path.setAttribute("d", d);
-    path.setAttribute("fill", "none");
-  }
-  svg.appendChild(path);
-
-  if (showDots) {
-    const dot = (i) => {
-      const c = document.createElementNS(NS, "circle");
-      c.setAttribute("cx", x(i));
-      c.setAttribute("cy", y(values[i]));
-      c.setAttribute("r", dotR);
-      c.setAttribute("fill", color);
-      return c;
-    };
-    if (p.dots === "end") svg.appendChild(dot(n - 1));
-    else if (p.dots === "minmax") {
-      const iMin = values.indexOf(min), iMax = values.indexOf(max);
-      svg.appendChild(dot(iMin)); svg.appendChild(dot(iMax));
-    } else if (p.dots === true) {
-      for (let i = 0; i < n; i++) svg.appendChild(dot(i));
-    }
-  }
-
-  if (p.title) {
-    const title = document.createElementNS(NS, "title");
-    title.textContent = p.title;
-    svg.appendChild(title);
-  }
-
-  return svg;
-}
-
-// Canvas histogram
-function tinytable_histogram(cell, p = {}) {
-  let data = cell.getValue() ?? [];
-  if (!Array.isArray(data)) data = [data];
-  data = data.map(Number).filter(Number.isFinite);
-  const n = data.length;
-  if (n === 0) return "";
-
-  const cssWidth = p.width ?? 120;
-  const cssHeight = p.height ?? 30;
-  const color = p.color ?? "currentColor";
-  const gap = p.gap ?? 1;         // px gap between bars
-  const pad = p.pad ?? 0;         // inner padding
-  const ariaLabel = p.ariaLabel ?? `histogram with ${n} observations`;
-
-  // robust bins: Sturges as default; allow override
-  const k = Math.max(1, Math.min(64, p.bins ?? Math.ceil(Math.log2(n) + 1)));
-
-  // stats
-  let min = Infinity, max = -Infinity;
-  for (let v of data) { if (v < min) min = v; if (v > max) max = v; }
-
-  // zero-range safeguard -> single centered bar
-  const range = max - min;
-  const binWidth = range > 0 ? range / k : 1;
-
-  const bins = new Array(k).fill(0);
-  if (range === 0) {
-    // put all mass in the middle bin
-    bins[Math.floor(k / 2)] = n;
-  } else {
-    for (let v of data) {
-      let idx = Math.floor((v - min) / binWidth);
-      if (idx >= k) idx = k - 1; // clamp max edge
-      bins[idx]++;
-    }
-  }
-  const maxCount = Math.max(...bins, 1);
-
-  // HiDPI / Retina crispness
-  const dpr = window.devicePixelRatio || 1;
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(cssWidth * dpr);
-  canvas.height = Math.round(cssHeight * dpr);
-  canvas.style.width = cssWidth + "px";
-  canvas.style.height = cssHeight + "px";
-  canvas.setAttribute("role", "img");
-  canvas.setAttribute("aria-label", ariaLabel);
-
-  const ctx = canvas.getContext("2d");
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0, 0, cssWidth, cssHeight);
-  ctx.fillStyle = color;
-
-  const innerW = cssWidth - pad * 2;
-  const innerH = cssHeight - pad * 2;
-  const barW = innerW / k;
-
-  for (let i = 0; i < k; i++) {
-    const h = (bins[i] / maxCount) * innerH;
-    const x = pad + i * barW;
-    const y = cssHeight - pad - h;
-    // 0.5 translate helps crisp vertical edges on some displays
-    ctx.fillRect(Math.round(x) + 0.5, Math.floor(y), Math.max(0, barW - gap), Math.ceil(h));
-  }
-
-  if (p.title) canvas.title = p.title;
-  return canvas;
-}
-
-// Unified sorter that uses hidden rank field
-function tinytable_rank_sorter(a, b, aRow, bRow, column, dir, sorterParams) {
-  const rankField = sorterParams.rankField;
-  const aVal = aRow.getData()[rankField] || 0;
-  const bVal = bRow.getData()[rankField] || 0;
-  return aVal - bVal;
-}
-</script>
-
-    <script>
-      // Create table-specific functions using external factory
-      const tableFns_n2xozr7mcxxzwnk57wfg = TinyTable.createTableFunctions("tinytable_n2xozr7mcxxzwnk57wfg");
-      // tinytable span after
-      window.addEventListener('load', function () {
-          var cellsToStyle = [
-            // tinytable style arrays after
-          { positions: [ { i: '1', j: 2 }, { i: '2', j: 2 }, { i: '3', j: 2 }, { i: '4', j: 2 }, { i: '5', j: 2 }, { i: '6', j: 2 }, { i: '7', j: 2 }, { i: '1', j: 3 }, { i: '2', j: 3 }, { i: '3', j: 3 }, { i: '4', j: 3 }, { i: '5', j: 3 }, { i: '6', j: 3 }, { i: '7', j: 3 } ], css_id: 'tinytable_css_x2akffwq04cjqsgvl48t',}, 
-          { positions: [ { i: '1', j: 1 }, { i: '2', j: 1 }, { i: '3', j: 1 }, { i: '4', j: 1 }, { i: '5', j: 1 }, { i: '6', j: 1 }, { i: '7', j: 1 } ], css_id: 'tinytable_css_nkhrc5rgnlzgtzq486dw',}, 
-          { positions: [ { i: '9', j: 2 }, { i: '9', j: 3 } ], css_id: 'tinytable_css_sxrumsc5gu9ba7jmzuiv',}, 
-          { positions: [ { i: '9', j: 1 } ], css_id: 'tinytable_css_p3pl2lw61dxryonsmeqo',}, 
-          { positions: [ { i: '8', j: 2 }, { i: '8', j: 3 } ], css_id: 'tinytable_css_oe3d1vswckoluzpnubp0',}, 
-          { positions: [ { i: '8', j: 1 } ], css_id: 'tinytable_css_p5fmnoys44oiza9vspbo',}, 
-          { positions: [ { i: '0', j: 2 }, { i: '0', j: 3 } ], css_id: 'tinytable_css_bpv6x31laku1d72tmhs0',}, 
-          { positions: [ { i: '0', j: 1 } ], css_id: 'tinytable_css_3q9qcdepfoqyzls5dkrx',}, 
-          ];
-
-          // Loop over the arrays to style the cells
-          cellsToStyle.forEach(function (group) {
-              group.positions.forEach(function (cell) {
-                  tableFns_n2xozr7mcxxzwnk57wfg.styleCell(cell.i, cell.j, group.css_id);
-              });
-          });
-      });
-    </script>
-
-    <style type="text/css">
-
-
-.tinytable {
-
---tt-text-color: inherit;
---tt-line-color: black;
---tt-border-color: var(--tt-line-color);
---tt-striped-bg: rgba(0, 0, 0, .05);
---tt-hover-bg: rgba(0, 0, 0, .075);
---tt-background-color: transparent;
---tt-footnote-bg: var(--tt-background-color);
-
---tt-cell-padding: .5rem;
---tt-cell-padding-sm: calc(var(--tt-cell-padding) / 2);
---tt-table-margin: .5rem 0;
---tt-caption-padding: .5rem 0;
---tt-footnote-padding: .2rem .5rem;
---tt-footnote-first-padding-top: .5rem;
---tt-footnote-gap: .1rem;
---tt-container-padding: 10px;
-
---tt-font-size-footnote: 0.875rem;
---tt-font-size-caption: 1rem;
---tt-font-size-sup: 0.75em;
---tt-line-height-footnote: 1.25;
---tt-line-height-footnote-tight: 1.2;
---tt-font-weight-header: normal;
-
---tt-cell-valign: top;
---tt-header-align: left;
---tt-header-valign: bottom;
---tt-caption-align: var(--tt-header-align);
---tt-caption-side: top;
-
---tt-table-width: 100%;
-
---tt-border-width: 1px;
---tt-border-width-tbody: 2px;
-}
-
-.tinytable {
-width: var(--tt-table-width);
-margin: var(--tt-table-margin);
-border-collapse: collapse;
-background-color: var(--tt-background-color);
-color: var(--tt-text-color);
-font-family: inherit;
--webkit-font-smoothing: antialiased;
--moz-osx-font-smoothing: grayscale;
-}
-.tinytable *:not(mjx-container):not(mjx-container *) {
-font-family: inherit;
-}
-
-.tinytable th,
-.tinytable td {
-position: relative;
-padding: var(--tt-cell-padding);
-vertical-align: var(--tt-cell-valign);
-}
-.tinytable thead th {
-text-align: var(--tt-header-align);
-vertical-align: var(--tt-header-valign);
-font-weight: var(--tt-font-weight-header);
-border-bottom: none;
-}
-.tinytable thead th[align="center"] {
-text-align: center;
-}
-.tinytable tbody + tbody {
-border-top: var(--tt-border-width-tbody) solid var(--tt-border-color);
-}
-
-
-.tinytable-sm th,
-.tinytable-sm td {
-padding: var(--tt-cell-padding-sm);
-}
-
-.tinytable-bordered {
-border: var(--tt-border-width) solid var(--tt-border-color);
-}
-.tinytable-bordered th,
-.tinytable-bordered td {
-border: var(--tt-border-width) solid var(--tt-border-color);
-}
-
-.tinytable-striped tbody tr:nth-of-type(odd) {
-background-color: var(--tt-striped-bg);
-}
-
-.tinytable-hover tbody tr:hover {
-background-color: var(--tt-hover-bg);
-}
-
-.tinytable-responsive {
-width: var(--tt-table-width);
-overflow-x: auto;
--webkit-overflow-scrolling: touch;
-}
-
-.tinytable :is(td, th)[class*="tinytable_css_"] {
-position: relative;
-
---border-top: 0;
---border-right: 0;
---border-bottom: 0;
---border-left: 0;
-
---line-color-top: currentColor;
---line-color-right: currentColor;
---line-color-bottom: currentColor;
---line-color-left: currentColor;
-
---line-width-top: 0.1em;
---line-width-right: 0.1em;
---line-width-bottom: 0.1em;
---line-width-left: 0.1em;
-
---trim-top-left: 0%;
---trim-top-right: 0%;
---trim-right-top: 0%;
---trim-right-bottom: 0%;
---trim-bottom-left: 0%;
---trim-bottom-right: 0%;
---trim-left-top: 0%;
---trim-left-bottom: 0%;
-}
-
-.tinytable :is(td, th)[class*="tinytable_css_"]::before {
-content: "";
-position: absolute;
-top: var(--trim-top-left, var(--trim-top-right, 0));
-left: var(--trim-left-top, 0);
-right: var(--trim-right-top, 0);
-bottom: 0;
-pointer-events: none;
-z-index: 1;
-border-top: calc(var(--border-top) * var(--line-width-top)) solid var(--line-color-top);
-border-right: calc(var(--border-right) * var(--line-width-right)) solid var(--line-color-right);
-border-left: calc(var(--border-left) * var(--line-width-left)) solid var(--line-color-left);
-}
-
-.tinytable :is(td, th)[class*="tinytable_css_"]::after {
-content: "";
-position: absolute;
-left: var(--trim-bottom-left, 0);
-right: var(--trim-bottom-right, 0);
-bottom: var(--trim-left-bottom, var(--trim-right-bottom, 0));
-height: calc(var(--border-bottom) * var(--line-width-bottom));
-background: var(--line-color-bottom);
-pointer-events: none;
-z-index: 2;
-}
-
-.tinytable-container {
-padding: var(--tt-container-padding);
-overflow-x: auto;
-overflow-y: auto;
-width: auto;
-height: auto;
-}
-
-.tinytable caption {
-padding: var(--tt-caption-padding);
-caption-side: var(--tt-caption-side);
-font-size: var(--tt-font-size-caption);
-text-align: var(--tt-caption-align);
-}
-
-.tinytable tfoot tr:first-child td {
-padding-top: var(--tt-footnote-first-padding-top);
-}
-.tinytable tfoot td {
-padding: var(--tt-footnote-padding);
-font-size: var(--tt-font-size-footnote);
-line-height: var(--tt-line-height-footnote);
-background-color: var(--tt-footnote-bg);
-}
-
-.tinytable tfoot tr + tr td {
-padding-top: var(--tt-footnote-gap);
-}
-
-.tinytable tfoot sup {
-font-size: var(--tt-font-size-sup);
-line-height: 0;
-vertical-align: text-top;
-}
-
-.tinytable tfoot tr:nth-child(n+2) td {
-line-height: var(--tt-line-height-footnote-tight);
-}
-</style>
-    <style>
-
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_x2akffwq04cjqsgvl48t, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_x2akffwq04cjqsgvl48t { text-align: center }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_nkhrc5rgnlzgtzq486dw, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_nkhrc5rgnlzgtzq486dw { text-align: left }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_sxrumsc5gu9ba7jmzuiv, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_sxrumsc5gu9ba7jmzuiv { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_p3pl2lw61dxryonsmeqo, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_p3pl2lw61dxryonsmeqo { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.1em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: left }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_oe3d1vswckoluzpnubp0, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_oe3d1vswckoluzpnubp0 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_p5fmnoys44oiza9vspbo, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_p5fmnoys44oiza9vspbo { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: left }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_bpv6x31laku1d72tmhs0, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_bpv6x31laku1d72tmhs0 { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: center }
-#tinytable_n2xozr7mcxxzwnk57wfg td.tinytable_css_3q9qcdepfoqyzls5dkrx, #tinytable_n2xozr7mcxxzwnk57wfg th.tinytable_css_3q9qcdepfoqyzls5dkrx { position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: black; --line-color-left: black; --line-color-right: black; --line-color-top: black; --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%; ; text-align: left }
-</style>
-    <div class="container">
-      <table class="tinytable" id="tinytable_n2xozr7mcxxzwnk57wfg" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing="true">
-        <caption>Errores estándar agrupados (clustered) por unidad — panel repetido en el tiempo</caption>
-        <thead>
-              <tr>
-                <th scope="col" data-row="0" data-col="1"> </th>
-                <th scope="col" data-row="0" data-col="2">Tendencias paralelas</th>
-                <th scope="col" data-row="0" data-col="3">Supuesto violado</th>
-              </tr>
-        </thead>
-        <tfoot><tr><td colspan="3">+ p &lt; 0.1, * p &lt; 0.05, ** p &lt; 0.01, *** p &lt; 0.001</td></tr></tfoot>
-        <tbody>
-                <tr>
-                  <td data-row="1" data-col="1">(Intercept)</td>
-                  <td data-row="1" data-col="2">45.929***</td>
-                  <td data-row="1" data-col="3">46.021***</td>
-                </tr>
-                <tr>
-                  <td data-row="2" data-col="1"></td>
-                  <td data-row="2" data-col="2">(0.349)</td>
-                  <td data-row="2" data-col="3">(0.334)</td>
-                </tr>
-                <tr>
-                  <td data-row="3" data-col="1">Tratado</td>
-                  <td data-row="3" data-col="2">0.042</td>
-                  <td data-row="3" data-col="3">-2.997***</td>
-                </tr>
-                <tr>
-                  <td data-row="4" data-col="1"></td>
-                  <td data-row="4" data-col="2">(0.464)</td>
-                  <td data-row="4" data-col="3">(0.440)</td>
-                </tr>
-                <tr>
-                  <td data-row="5" data-col="1">Después (post)</td>
-                  <td data-row="5" data-col="2">5.297***</td>
-                  <td data-row="5" data-col="3">5.117***</td>
-                </tr>
-                <tr>
-                  <td data-row="6" data-col="1"></td>
-                  <td data-row="6" data-col="2">(0.133)</td>
-                  <td data-row="6" data-col="3">(0.158)</td>
-                </tr>
-                <tr>
-                  <td data-row="7" data-col="1">Tratado x Después (delta)</td>
-                  <td data-row="7" data-col="2">5.016***</td>
-                  <td data-row="7" data-col="3">9.224***</td>
-                </tr>
-                <tr>
-                  <td data-row="8" data-col="1"></td>
-                  <td data-row="8" data-col="2">(0.209)</td>
-                  <td data-row="8" data-col="3">(0.216)</td>
-                </tr>
-                <tr>
-                  <td data-row="9" data-col="1">Num.Obs.</td>
-                  <td data-row="9" data-col="2">1400</td>
-                  <td data-row="9" data-col="3">1400</td>
-                </tr>
-        </tbody>
-      </table>
-    </div>
-<!-- hack to avoid NA insertion in last line -->
+<pre><code></code></pre>
+<pre><code></code></pre>
 <p>La ecuación estimada es <span class="math inline">\(Y_{it} = \beta_0
 + \beta_1 \text{Tratado}_i + \beta_2\,\text{Post}_t +
 \delta\,(\text{Tratado}_i\times \text{Post}_t) +
@@ -5210,79 +4659,17 @@ fija de nivel entre los grupos, antes del tratamiento — es el <span class="mat
 el simple paso del tiempo — es <span class="math inline">\(\lambda_t\)</span>.</li>
 <li><span class="math inline">\(\delta\)</span> (Tratado × Post): lo que
 se mueve el grupo tratado <strong>por encima</strong> de esos dos
-efectos — el estimador DiD.</li>
+efectos el estimador DiD.</li>
 </ul>
 <p><strong>¿Por qué errores estándar agrupados (clustered) por unidad, y
 no los usuales de MCO?</strong> Porque cada unidad aparece varias veces
 en el panel (una fila por periodo), y los choques <span class="math inline">\(u_{it}\)</span> de una misma unidad están
-correlacionados en el tiempo — no son i.i.d. Ignorar eso hace que los
+correlacionados en el tiempo, no son i.i.d. Ignorar eso hace que los
 errores estándar salgan artificialmente pequeños y se rechace <span class="math inline">\(H_0\)</span> con más frecuencia de la que deberían
-(Bertrand, Duflo y Mullainathan, 2004). Agrupar por unidad permite
-correlación arbitraria <em>dentro</em> de cada unidad, y la asintótica
-relevante pasa a ser el número de unidades, no el número de
-observaciones — por eso DiD con pocos grupos tratados es delicado.</p>
+(Bertrand, Duflo y Mullainathan, 2004).</p>
 <blockquote>
-<p><strong>Para su trabajo:</strong> si tienen datos de panel (mismo
-tratado/control, varios periodos antes y después), grafiquen
-<strong>siempre</strong> las medias por grupo en el tiempo antes de
-correr la regresión, y usen <code>clusters =</code> en
-<code>lm_robust()</code> al nivel al que se repiten sus datos
-(municipio, firma, persona…).</p>
+
 </blockquote>
-<hr />
-</div>
-</div>
-<div id="guía-rápida-qué-herramienta-uso-en-mi-trabajo" class="section level1" number="7">
-<h1><span class="header-section-number">7</span> Guía rápida: ¿qué
-herramienta uso en mi trabajo?</h1>
-<table>
-<colgroup>
-<col width="33%" />
-<col width="33%" />
-<col width="33%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>Su situación</th>
-<th>Herramienta</th>
-<th>Función en R</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Tengo un tratamiento binario asignado al azar (o creo que lo
-es)</td>
-<td>Diferencia de medias / OLS simple</td>
-<td><code>lm(y ~ D)</code></td>
-</tr>
-<tr class="even">
-<td>Mi variable dependiente es 0/1</td>
-<td>LPM, Logit o Probit — reporten el APE</td>
-<td><code>lm()</code>, <code>glm(family=binomial())</code>,
-<code>avg_slopes()</code></td>
-</tr>
-<tr class="odd">
-<td>Sospecho que mi <span class="math inline">\(X\)</span> está
-correlacionada con el error, y tengo una variable que la mueve sin
-afectar a <span class="math inline">\(Y\)</span> directamente</td>
-<td>Variables instrumentales</td>
-<td><code>ivreg(y ~ x \| z)</code></td>
-</tr>
-<tr class="even">
-<td>Tengo un grupo tratado y uno control, observados en varios periodos
-antes y después, que no son comparables desde el inicio</td>
-<td>Diferencias en diferencias</td>
-<td><code>lm_robust(y ~ tratado*post, clusters = id)</code></td>
-</tr>
-</tbody>
-</table>
-<blockquote>
-<p>El paso que <strong>nunca</strong> hace R por ustedes: argumentar
-<em>por qué</em> se cumple el supuesto de identificación (aleatoriedad,
-exclusión, tendencias paralelas). Eso va en la sección de identificación
-de su trabajo, en prosa, no en una tabla de regresión.</p>
-</blockquote>
-<hr />
 <hr />
 <table>
 <tbody>
@@ -5294,6 +4681,7 @@ de su trabajo, en prosa, no en una tabla de regresión.</p>
 <hr />
 <p><em>Clase preparada para Econometría 1 — ECON 3311 / ECON 3321 |
 Universidad de los Andes | 2026-19</em></p>
+</div>
 </div>
 
 
